@@ -20,26 +20,25 @@ from client_wrapper import client_wrapper
 class ClientWrapperTest(unittest.TestCase):
 
     def test_results_page_displays_non_numeric_metrics(self):
-        '''
-        When latency, upload_speed, and download_speed are
-        non-numeric values, corresponding error objects are
-        added to the errors list that indicates that the each
-        of these values is invalid.
-        '''
+        """
+        When latency, c2s_throughput, and s2c_throughput are non-numeric values,
+        corresponding error objects are added to the errors list that indicate
+        that each of these values is invalid.
+        """
         with mock.patch(
                 'client_wrapper.client_wrapper.NdtHtml5SeleniumDriver.set_test_browser',
                 autospec=True) as mock_set_test_browser:
             # mock driver
             mock_set_test_browser.return_value = mock.MagicMock()
 
-            # Set values read from page for latency, upload speed,
-            # download speed
+            # Set values read from page for latency, c2s throughput,
+            # download throughput
             mock_set_test_browser.return_value.find_element_by_id(
                 'latency').text = 'Non numeric value'
             mock_set_test_browser.return_value.find_element_by_id(
-                'upload_speed').text = 'Non numeric value'
+                'c2s_throughput').text = 'Non numeric value'
             mock_set_test_browser.return_value.find_element_by_id(
-                'download_speed').text = 'Non numeric value'
+                's2c_throughput').text = 'Non numeric value'
 
             # Mock visibility function so shows all elements are
             # always visible
@@ -62,16 +61,16 @@ class ClientWrapperTest(unittest.TestCase):
                     'illegal value shown for latency: Non numeric value')
                 self.assertEqual(
                     test_results.errors[1].message,
-                    'illegal value shown for download_speed: Non numeric value')
+                    'illegal value shown for s2c_throughput: Non numeric value')
                 self.assertEqual(
                     test_results.errors[2].message,
-                    'illegal value shown for upload_speed: Non numeric value')
+                    'illegal value shown for c2s_throughput: Non numeric value')
 
     def test_results_page_displays_numeric_latency(self):
-        '''
-        When latency is a numeric value, an error object is
-        not added to the errors list.
-        '''
+        """
+        When latency is a numeric value, an error object is not added to the
+        errors list.
+        """
         with mock.patch(
                 'client_wrapper.client_wrapper.NdtHtml5SeleniumDriver.set_test_browser',
                 autospec=True) as mock_set_test_browser:

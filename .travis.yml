@@ -4,12 +4,15 @@ python:
   - "2.7"
 # Use firefox with xvfb to run a browser where necessary
 # for selenium
-before_install:
-    - "export DISPLAY=:99.0"
-    - "sh -e /etc/init.d/xvfb start"
-    - sleep 3 # give xvfb some time to start
 install:
+    # Requirements needed to run application
     - pip install -r requirements.txt
+    # Requirements needed to run application tests
+    - pip install -r test_requirements.txt
+    # Requirements needed for Travis CI
+    - pip install coveralls==1.1
+    - pip install yapf==0.6.2
+    - pip install pyflakes==1.0.0
 script:
     # Run unit tests and calculate code coverage.
     - coverage run --source client_wrapper -m unittest discover

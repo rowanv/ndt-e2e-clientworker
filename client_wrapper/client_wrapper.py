@@ -21,12 +21,12 @@ from selenium.common.exceptions import WebDriverException, TimeoutException
 
 
 class TestError(object):
-    '''Log message of an error encountered in the test.
+    """Log message of an error encountered in the test.
 
     Attributes:
         timestamp: Datetime of when the error was observed
         message: String message describing the error.
-    '''
+    """
 
     def __init__(self, timestamp, message):
         self.timestamp = timestamp
@@ -34,25 +34,21 @@ class TestError(object):
 
 
 class NdtResult(object):
-    '''Represents the results of a complete NDT HTML5 client
-    test.
+    """Represents the results of a complete NDT HTML5 client test.
 
     Attributes:
-        start_time: The datetime at which tests were initiated
-            (i.e. the time the driver pushed the 'Start Test' button).
-        end_time: The datetime at which the tests completed (i.e. the time
-            the results page loaded).
-        c2s_start_time: The datetime when the c2s (upload) test began (
-            or none if the test never began).
-        s2c_start_time: The datetime when the s2c (download) test began (
-            or None if the test never began).
-        latency: The reported latency (in milliseconds)
-        upload_speed: The reported upload speed (in kb/s)
-        download_speed: The reported download speed (in kb/s)
-        errors: a list of TestError objects representing any errors
-            encountered during the tests (or an empty list if all
-            tests were successful).
-    '''
+        start_time: The datetime at which tests were initiated (i.e. the time
+            the driver pushed the 'Start Test' button).
+        end_time: The datetime at which the tests completed (i.e. the time the
+            results page loaded).
+        c2s_start_time: The NdtSingleResult for the c2s (upload) test.
+        s2c_start_time: The NdtSingleResult for the s2c (download) test.
+        latency: The reported latency (in milliseconds).
+        c2s_throughput: The reported upload (c2s) throughput (in kb/s).
+        s2c_throughput: The reported download (s2c) throughput (in kb/s).
+        errors: a list of TestError objects representing any errors encountered
+            during the tests (or an empty list if all tests were successful).
+    """
 
     def __init__(self,
                  start_time,
@@ -61,20 +57,16 @@ class NdtResult(object):
                  s2c_start_time,
                  errors,
                  latency=None,
-                 upload_speed=None,
-                 download_speed=None):
+                 c2s_throughput=None,
+                 s2c_throughput=None):
         self.start_time = start_time
         self.end_time = end_time
         self.c2s_start_time = c2s_start_time
         self.s2c_start_time = s2c_start_time
         self.errors = errors
-
-        if latency:
-            self.latency = latency
-        if upload_speed:
-            self.upload_speed = upload_speed
-        if download_speed:
-            self.download_speed = download_speed
+        self.latency = latency
+        self.c2s_throughput = c2s_throughput
+        self.s2c_throughput = s2c_throughput
 
     def __str__(self):
         return 'NDT Results:\n Start Time: %s,\n End Time: %s'\
@@ -83,11 +75,11 @@ class NdtResult(object):
 
 
 class NdtHtml5SeleniumDriver(object):
-    '''
+    """
     Attributes:
         result_values: A dictionary containing the results of
             an NDT test.
-    '''
+    """
 
     def __init__(self):
         self.result_values = {'start_time': None,
@@ -97,37 +89,37 @@ class NdtHtml5SeleniumDriver(object):
                               'errors': []}
 
     def set_test_browser(self, browser):
-        '''
-        Sets browser for an NDT test.
+        """Sets browser for an NDT test.
 
         Args:
-            browser: Can be one of 'firefox', 'chrome', 'edge', or
-                'safari'
+            browser: Can be one of 'firefox', 'chrome', 'edge', or 'safari'
+
         Returns: An instance of a Selenium webdriver browser class
             corresponding to the specified browser.
-        '''
+        """
         if browser == 'firefox':
             return webdriver.Firefox()
 
     def check_result_metrics(self):
-        '''
-        Checks that the values for upload speed, download
-        speed, and latency within the result_values dict are valid.
-        '''
+        """Checks metric values in a result_values dict.
+
+        Checks that the values for upload (c2s) throughput, download (s2c)
+        throughput, and latency within the result_values dict are valid.
+        """
         self.test_indiv_metric_is_valid('latency')
-        self.test_indiv_metric_is_valid('download_speed')
-        self.test_indiv_metric_is_valid('upload_speed')
+        self.test_indiv_metric_is_valid('s2c_throughput')
+        self.test_indiv_metric_is_valid('c2s_throughput')
 
     def test_indiv_metric_is_valid(self, metric):
-        '''
-        For a given metric in result_values, checks that it is
-        a valid numeric value. If not, an error is added to
-        result_values' errors list.
+        """Checks whether a given metric is a valid numeric value.
+
+        For a given metric in result_values, checks that it is a valid numeric
+        value. If not, an error is added to result_values' errors list.
 
         Args:
-            metric: One of 'latency', 'download_speed', or
-                'upload_speed'.
-        '''
+            metric: One of 'latency', 's2c_throughput', or
+                'c2s_throughput'.
+        """
         try:
             float(self.result_values[metric])
         except ValueError:
@@ -137,21 +129,20 @@ class NdtHtml5SeleniumDriver(object):
                 datetime.now(pytz.utc), message))
 
     def perform_test(self, url, browser, timeout_time=20):
-        '''
-        Performs an NDT test with the HTML5 client in the specified
-        browser.
+        """Performs an NDT test with the HTML5 client in the specified browser.
 
         Performs a full NDT test (both s2c and c2s) using the specified
         browser.
 
         Args:
             url: The URL of an NDT server to test against.
-            browser: Can be one of 'firefox', 'chrome', 'edge', or
-                'safari'.
+            browser: Can be one of 'firefox', 'chrome', 'edge', or 'safari'.
+            timeout_time: The number of seconds that the driver will wait for
+                an element to become visible before timing out.
 
         Returns:
             A populated NdtResult object
-        '''
+        """
         self.driver = self.set_test_browser(browser)
 
         try:
@@ -194,10 +185,10 @@ class NdtHtml5SeleniumDriver(object):
             self.result_values['end_time'] = datetime.now(pytz.utc)
 
             # Find metric values
-            self.result_values['upload_speed'] = self.driver.find_element_by_id(
+            self.result_values['c2s_throughput'] = self.driver.find_element_by_id(
                 'upload-speed').text
             self.result_values[
-                'download_speed'] = self.driver.find_element_by_id(
+                's2c_throughput'] = self.driver.find_element_by_id(
                     'download-speed').text
             self.result_values['latency'] = self.driver.find_element_by_id(
                 'latency').text
