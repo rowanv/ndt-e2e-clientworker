@@ -2,8 +2,6 @@ sudo: false
 language: python
 python:
   - "2.7"
-# Use firefox with xvfb to run a browser where necessary
-# for selenium
 install:
     # Requirements needed to run application
     - pip install -r requirements.txt
