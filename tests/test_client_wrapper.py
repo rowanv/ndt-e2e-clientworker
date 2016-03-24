@@ -112,11 +112,13 @@ class NdtHtml5SeleniumDriverGeneralTest(unittest.TestCase):
         # mock datetime.now() function returns.
         base_date = datetime.datetime(2016, 1, 1, 8, 0, 0, tzinfo=pytz.utc)
         dates = [base_date + datetime.timedelta(0, 60) * x for x in range(5)]
+
         def mock_dates(_):
             return dates.pop(0)
 
-        with mock.patch.object(client_wrapper.datetime, 'datetime', autospec=True,
-            ) as mocked_datetime:
+        with mock.patch.object(client_wrapper.datetime,
+                               'datetime',
+                               autospec=True,) as mocked_datetime:
 
             mocked_datetime.now.side_effect = mock_dates
             selenium_driver = client_wrapper.NdtHtml5SeleniumDriver()
@@ -129,13 +131,37 @@ class NdtHtml5SeleniumDriverGeneralTest(unittest.TestCase):
         # And the sequence of returned values follows the expected timeline
         # that the readings are taken in.
         self.assertEqual(test_results.start_time,
-            datetime.datetime(2016, 1, 1, 8, 0, 0, tzinfo=pytz.utc))
+                         datetime.datetime(2016,
+                                           1,
+                                           1,
+                                           8,
+                                           0,
+                                           0,
+                                           tzinfo=pytz.utc))
         self.assertEqual(test_results.c2s_start_time,
-            datetime.datetime(2016, 1, 1, 8, 1, 0, tzinfo=pytz.utc))
+                         datetime.datetime(2016,
+                                           1,
+                                           1,
+                                           8,
+                                           1,
+                                           0,
+                                           tzinfo=pytz.utc))
         self.assertEqual(test_results.s2c_start_time,
-            datetime.datetime(2016, 1, 1, 8, 2, 0, tzinfo=pytz.utc))
+                         datetime.datetime(2016,
+                                           1,
+                                           1,
+                                           8,
+                                           2,
+                                           0,
+                                           tzinfo=pytz.utc))
         self.assertEqual(test_results.end_time,
-            datetime.datetime(2016, 1, 1, 8, 3, 0, tzinfo=pytz.utc))
+                         datetime.datetime(2016,
+                                           1,
+                                           1,
+                                           8,
+                                           3,
+                                           0,
+                                           tzinfo=pytz.utc))
 
 
 class NdtHtml5SeleniumDriverCustomClassTest(unittest.TestCase):

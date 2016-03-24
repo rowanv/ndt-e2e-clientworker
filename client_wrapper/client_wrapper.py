@@ -93,10 +93,10 @@ class NdtHtml5SeleniumDriver(object):
             A populated NdtResult object.
         """
         result = NdtResult(start_time=None,
-            end_time=None,
-            c2s_start_time=None,
-            s2c_start_time=None,
-            errors=[])
+                           end_time=None,
+                           c2s_start_time=None,
+                           s2c_start_time=None,
+                           errors=[])
 
         with contextlib.closing(_create_browser(browser)) as driver:
             try:
@@ -106,16 +106,12 @@ class NdtHtml5SeleniumDriver(object):
                 result.errors.append(TestError(
                     datetime.datetime.now(pytz.utc), message))
                 return result
-            driver.find_element_by_id('websocketButton').click()
 
-            start_button = driver.find_elements_by_xpath(
-                "//*[contains(text(), 'Start Test')]")[0]
-            start_button.click()
-            result.start_time = datetime.datetime.now(pytz.utc)
+            result = _click_start_button(driver, result)
 
             try:
-                result = _record_test_in_progress_values(
-                    result, driver, timeout)
+                result = _record_test_in_progress_values(result, driver,
+                                                         timeout)
 
                 result = _populate_metric_values(result, driver)
 
@@ -142,6 +138,28 @@ def _create_browser(browser):
     if browser in ['chrome', 'edge', 'safari']:
         raise NotImplementedError
     raise ValueError('Invalid browser specified: %s' % browser)
+
+
+def _click_start_button(driver, result):
+    """Clicks start test button and records start time.
+
+    Clicks the start test button for an NDT test and records the start time in
+    an NdtResult instance.
+
+    Args:
+        driver: An instance of a Selenium webdriver browser class.
+        result: An instance of an NdtResult class.
+
+    Returns:
+        An instance of an NdtResult class.
+    """
+    driver.find_element_by_id('websocketButton').click()
+
+    start_button = driver.find_elements_by_xpath(
+        "//*[contains(text(), 'Start Test')]")[0]
+    start_button.click()
+    result.start_time = datetime.datetime.now(pytz.utc)
+    return result
 
 
 def _record_test_in_progress_values(result, driver, timeout):
@@ -178,10 +196,9 @@ def _record_test_in_progress_values(result, driver, timeout):
 
     # wait until the results page appears
     results_text = driver.find_element_by_id('results')
-    result.end_time = _record_time_when_element_displayed(
-        results_text,
-        driver,
-        timeout=timeout)
+    result.end_time = _record_time_when_element_displayed(results_text,
+                                                          driver,
+                                                          timeout=timeout)
     return result
 
 
@@ -222,11 +239,9 @@ def _populate_metric_values(result, driver):
     Returns:
         An instance of NdtResult.
     """
-    result.c2s_throughput = driver.find_element_by_id(
-        'upload-speed').text
-    result = _validate_metric(result, result.c2s_throughput,'c2s_throughput')
-    result.s2c_throughput = driver.find_element_by_id(
-        'download-speed').text
+    result.c2s_throughput = driver.find_element_by_id('upload-speed').text
+    result = _validate_metric(result, result.c2s_throughput, 'c2s_throughput')
+    result.s2c_throughput = driver.find_element_by_id('download-speed').text
     result = _validate_metric(result, result.s2c_throughput, 's2c_throughput')
     result.latency = driver.find_element_by_id('latency').text
     result = _validate_metric(result, result.latency, 'latency')
@@ -251,7 +266,8 @@ def _validate_metric(result, metric, metric_name):
         float(metric)
     except ValueError:
         message = 'illegal value shown for ' + metric_name + ': ' + str(metric)
-        result.errors.append(TestError(datetime.datetime.now(pytz.utc), message))
+        result.errors.append(TestError(
+            datetime.datetime.now(pytz.utc), message))
     return result
 
 
