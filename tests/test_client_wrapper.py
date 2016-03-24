@@ -21,6 +21,7 @@ import selenium.webdriver.support.expected_conditions as selenium_expected_condi
 from selenium.common import exceptions
 from client_wrapper import client_wrapper
 
+
 class NdtHtml5SeleniumDriverGeneralTest(unittest.TestCase):
 
     def setUp(self):
@@ -40,15 +41,14 @@ class NdtHtml5SeleniumDriverGeneralTest(unittest.TestCase):
     def test_timeout_throws_error(self):
         # Call to webdriverwait throws timeout exception
         with mock.patch.object(client_wrapper.ui,
-                                                 'WebDriverWait',
-                                                 side_effect=exceptions.TimeoutException,
-                                                 autospec=True):
+                               'WebDriverWait',
+                               side_effect=exceptions.TimeoutException,
+                               autospec=True):
             selenium_driver = client_wrapper.NdtHtml5SeleniumDriver()
             test_results = selenium_driver.perform_test(
                 url='http://ndt.mock-server.com:7123/',
                 browser='firefox',
                 timeout=1)
-
 
         # We have one error
         self.assertEqual(len(test_results.errors), 1)
@@ -61,35 +61,51 @@ class NdtHtml5SeleniumDriverGeneralTest(unittest.TestCase):
         selenium_driver = client_wrapper.NdtHtml5SeleniumDriver()
         with self.assertRaises(NotImplementedError):
             selenium_driver.perform_test(url='http://ndt.mock-server.com:7123',
-                browser='chrome', timeout=1)
+                                         browser='chrome',
+                                         timeout=1)
         with self.assertRaises(NotImplementedError):
             selenium_driver.perform_test(url='http://ndt.mock-server.com:7123',
-                browser='edge', timeout=1)
+                                         browser='edge',
+                                         timeout=1)
         with self.assertRaises(NotImplementedError):
             selenium_driver.perform_test(url='http://ndt.mock-server.com:7123',
-                browser='safari', timeout=1)
+                                         browser='safari',
+                                         timeout=1)
 
     def test_unrecognized_browser_raises_error(self):
         selenium_driver = client_wrapper.NdtHtml5SeleniumDriver()
         with self.assertRaises(ValueError):
             selenium_driver.perform_test(url='http://ndt.mock-server.com:7123',
-                browser='not_a_browser', timeout=1)
+                                         browser='not_a_browser',
+                                         timeout=1)
 
     @freezegun.freeze_time('2016-01-01', tz_offset=0)
     def test_return_values_records_correct_times(self):
+        # When we patch datetime so it shows our current date as 2016-01-01
         self.assertEqual(datetime.datetime.now(), datetime.datetime(2016, 1, 1))
 
-        with mock.patch.object(client_wrapper.ui,'WebDriverWait', autospec=True):
+        with mock.patch.object(client_wrapper.ui,
+                               'WebDriverWait',
+                               autospec=True):
             selenium_driver = client_wrapper.NdtHtml5SeleniumDriver()
             test_results = selenium_driver.perform_test(
                 url='http://ndt.mock-server.com:7123/',
                 browser='firefox',
                 timeout=1)
 
+        # Then the readings for our test start and end times occur within
+        # today's date
         self.assertEqual(test_results.start_time,
-            datetime.datetime(2016, 1, 1, tzinfo=pytz.utc))
+                         datetime.datetime(2016,
+                                           1,
+                                           1,
+                                           tzinfo=pytz.utc))
         self.assertEqual(test_results.end_time,
-            datetime.datetime(2016, 1, 1, tzinfo=pytz.utc))
+                         datetime.datetime(2016,
+                                           1,
+                                           1,
+                                           tzinfo=pytz.utc))
+
 
 class NdtHtml5SeleniumDriverCustomClassTest(unittest.TestCase):
 
@@ -134,9 +150,9 @@ class NdtHtml5SeleniumDriverCustomClassTest(unittest.TestCase):
                 return [NewWebElement()]
 
         with mock.patch.object(client_wrapper.webdriver,
-                                             'Firefox',
-                                             autospec=True,
-                                             return_value=NewDriver()):
+                               'Firefox',
+                               autospec=True,
+                               return_value=NewDriver()):
 
             selenium_driver = client_wrapper.NdtHtml5SeleniumDriver()
             test_results = selenium_driver.perform_test(
@@ -146,16 +162,14 @@ class NdtHtml5SeleniumDriverCustomClassTest(unittest.TestCase):
 
         # And the appropriate error objects are contained in
         # the list
-        self.assertEqual(test_results.errors[0].message,
-                         'illegal value shown for latency: Non numeric value')
+        self.assertEqual(
+            test_results.errors[0].message,
+            'illegal value shown for c2s_throughput: Non numeric value')
         self.assertEqual(
             test_results.errors[1].message,
             'illegal value shown for s2c_throughput: Non numeric value')
-        self.assertEqual(
-            test_results.errors[2].message,
-            'illegal value shown for c2s_throughput: Non numeric value')
-
-
+        self.assertEqual(test_results.errors[2].message,
+                         'illegal value shown for latency: Non numeric value')
 
     def test_results_page_displays_numeric_latency(self):
         """A valid (numeric) latency results in an empty errors list.
@@ -185,9 +199,9 @@ class NdtHtml5SeleniumDriverCustomClassTest(unittest.TestCase):
                 return [NewWebElement()]
 
         with mock.patch.object(client_wrapper.webdriver,
-                                             'Firefox',
-                                             autospec=True,
-                                             return_value=NewDriver()):
+                               'Firefox',
+                               autospec=True,
+                               return_value=NewDriver()):
 
             selenium_driver = client_wrapper.NdtHtml5SeleniumDriver()
             test_results = selenium_driver.perform_test(
@@ -208,14 +222,14 @@ class NdtHtml5SeleniumDriverInvalidURLTest(unittest.TestCase):
         class NewDriver(object):
 
             def get(self, url):
-                raise exceptions.WebDriverException(
-                    u'Target URL invalid_url is not well-formed.')
+                raise exceptions.WebDriverException(u'Failed to load test UI.')
 
             def close(self):
                 pass
 
-        with mock.patch.object(client_wrapper.webdriver, 'Firefox',
-                return_value=NewDriver()):
+        with mock.patch.object(client_wrapper.webdriver,
+                               'Firefox',
+                               return_value=NewDriver()):
             selenium_driver = client_wrapper.NdtHtml5SeleniumDriver()
             test_results = selenium_driver.perform_test(url='invalid_url',
                                                         browser='firefox',
@@ -224,10 +238,9 @@ class NdtHtml5SeleniumDriverInvalidURLTest(unittest.TestCase):
         # We have one error
         self.assertEqual(len(test_results.errors), 1)
 
-        # And that error is about the test results URL not being
-        # well-formed
+        # And that error is about test UI loading failure
         self.assertEqual(test_results.errors[0].message,
-                         u'Target URL invalid_url is not well-formed.')
+                         'Failed to load test UI.')
 
 
 if __name__ == '__main__':
