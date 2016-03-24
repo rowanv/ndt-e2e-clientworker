@@ -12,12 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from datetime import datetime
+import contextlib
+import datetime
 import pytz
 from selenium import webdriver
 from selenium.webdriver.support import ui
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import WebDriverException, TimeoutException
+from selenium.common import exceptions
 
 
 class TestError(object):
@@ -96,39 +97,35 @@ class NdtHtml5SeleniumDriver(object):
                                'c2s_start_time': None,
                                's2c_start_time': None,
                                'errors': []}
-        driver = _create_browser(browser)
-        try:
-            driver.get(url)
-        except WebDriverException as e:
-            if e.msg == u'Target URL invalid_url is not well-formed.':
+        with contextlib.closing(_create_browser(browser)) as driver:
+            try:
+                driver.get(url)
+            except exceptions.WebDriverException as e:
+                if e.msg == u'Target URL invalid_url is not well-formed.':
+                    _result_values['errors'].append(TestError(
+                        datetime.datetime.now(pytz.utc), e.msg))
+                    return NdtResult(**_result_values)
+            driver.find_element_by_id('websocketButton').click()
+
+            start_button = driver.find_elements_by_xpath(
+                "//*[contains(text(), 'Start Test')]")[0]
+            start_button.click()
+            _result_values['start_time'] = datetime.datetime.now(pytz.utc)
+
+            try:
+                _result_values = _record_test_in_progress_values(_result_values, driver,
+                    timeout)
+
+                _result_values = _populate_metric_values(_result_values, driver)
+
+            except exceptions.TimeoutException as e:
+                message = 'Test did not complete within timeout period.'
                 _result_values['errors'].append(TestError(
-                    datetime.now(pytz.utc), e.msg))
-                driver.close()
+                    datetime.datetime.now(pytz.utc), message))
                 return NdtResult(**_result_values)
-        driver.find_element_by_id('websocketButton').click()
+            _result_values = _check_result_metrics(_result_values)
 
-        start_button = driver.find_elements_by_xpath(
-            "//*[contains(text(), 'Start Test')]")[0]
-        start_button.click()
-        _result_values['start_time'] = datetime.now(pytz.utc)
-
-        try:
-            _result_values = _record_test_in_progress_values(_result_values, driver,
-                timeout)
-
-            _result_values = _populate_metric_values(_result_values, driver)
-
-        except TimeoutException as e:
-            message = 'Test did not complete within timeout period.'
-            _result_values['errors'].append(TestError(
-                datetime.now(pytz.utc), message))
-            driver.close()
             return NdtResult(**_result_values)
-        _result_values = _check_result_metrics(_result_values)
-
-        driver.close()
-
-        return NdtResult(**_result_values)
 
 
 def _create_browser(browser):
@@ -165,26 +162,41 @@ def _record_test_in_progress_values(_result_values, driver, timeout):
     # wait until 'Now Testing your upload speed' is displayed
     upload_speed_text = driver.find_elements_by_xpath(
         "//*[contains(text(), 'your upload speed')]")[0]
-    ui.WebDriverWait(
-        driver,
-        timeout=timeout).until(EC.visibility_of(upload_speed_text))
-    _result_values['c2s_start_time'] = datetime.now(pytz.utc)
+    _result_values['c2s_start_time'] = _record_time_when_element_displayed(
+        upload_speed_text, driver, timeout=timeout)
 
     # wait until 'Now Testing your download speed' is displayed
     download_speed_text = driver.find_elements_by_xpath(
         "//*[contains(text(), 'your download speed')]")[0]
-    ui.WebDriverWait(
-        driver,
-        timeout=timeout).until(EC.visibility_of(download_speed_text))
-    _result_values['s2c_start_time'] = datetime.now(pytz.utc)
+    _result_values['s2c_start_time'] = _record_time_when_element_displayed(
+        download_speed_text, driver, timeout=timeout)
 
     # wait until the results page appears
     results_text = driver.find_element_by_id('results')
-    ui.WebDriverWait(
-        driver,
-        timeout=timeout).until(EC.visibility_of(results_text))
-    _result_values['end_time'] = datetime.now(pytz.utc)
+    _result_values['end_time'] = _record_time_when_element_displayed(
+        results_text, driver, timeout=timeout)
     return _result_values
+
+def _record_time_when_element_displayed(element,  driver, timeout):
+    """Return the time when the specified element is displayed.
+
+    The Selenium WebDriver checks whether the specified element is visible. If
+    it becomes visible before the request has timed out, the timestamp of the
+    time when the element becomes visible is returned.
+
+    Args:
+        element: A selenium webdriver element.
+        timeout: The number of seconds that the driver will wait for
+            each element to become visible before timing out.
+
+    Returns: A `datetime` object with a timezone information attribute.
+
+    Raises:
+        TimeoutException: If the element does not become visible before the `timeout`
+            time passes.
+    """
+    ui.WebDriverWait(driver,timeout=timeout).until(EC.visibility_of(element))
+    return datetime.datetime.now(pytz.utc)
 
 
 def _populate_metric_values(_result_values, driver):
@@ -241,7 +253,7 @@ def _test_indiv_metric_is_valid(_result_values, metric):
         message = 'illegal value shown for ' + metric + ': ' + \
             str(_result_values[metric])
         _result_values['errors'].append(TestError(
-            datetime.now(pytz.utc), message))
+            datetime.datetime.now(pytz.utc), message))
     return _result_values
 
 
