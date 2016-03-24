@@ -80,7 +80,7 @@ class NdtHtml5SeleniumDriverGeneralTest(unittest.TestCase):
                                          timeout=1)
 
     @freezegun.freeze_time('2016-01-01', tz_offset=0)
-    def test_return_values_records_correct_times(self):
+    def test_ndt_test_results_records_todays_times(self):
         # When we patch datetime so it shows our current date as 2016-01-01
         self.assertEqual(datetime.datetime.now(), datetime.datetime(2016, 1, 1))
 
@@ -105,6 +105,39 @@ class NdtHtml5SeleniumDriverGeneralTest(unittest.TestCase):
                                            1,
                                            1,
                                            tzinfo=pytz.utc))
+
+    def test_ndt_test_results_increments_time_correctly(self):
+        # Create a list of times every minute starting at 2016-1-1 8:00:00
+        # and ending at 2016-1-1 8:04:00. These will be the values that our
+        # mock datetime.now() function returns.
+        base_date = datetime.datetime(2016, 1, 1, 8, 0, 0, tzinfo=pytz.utc)
+        dates = [base_date + datetime.timedelta(0, 60) * x for x in range(5)]
+        print(dates)
+        def mock_dates(_):
+            return dates.pop(0)
+
+        with mock.patch.object(client_wrapper.datetime, 'datetime', autospec=True,
+            ) as mocked_datetime:
+
+            mocked_datetime.now.side_effect = mock_dates
+            selenium_driver = client_wrapper.NdtHtml5SeleniumDriver()
+
+            test_results = selenium_driver.perform_test(
+                url='http://ndt.mock-server.com:7123/',
+                browser='firefox',
+                timeout=1)
+            print(test_results)
+
+        # And the sequence of returned values follows the expected timeline
+        # that the readings are taken in.
+        self.assertEqual(test_results.start_time,
+            datetime.datetime(2016, 1, 1, 8, 0, 0, tzinfo=pytz.utc))
+        self.assertEqual(test_results.c2s_start_time,
+            datetime.datetime(2016, 1, 1, 8, 1, 0, tzinfo=pytz.utc))
+        self.assertEqual(test_results.s2c_start_time,
+            datetime.datetime(2016, 1, 1, 8, 2, 0, tzinfo=pytz.utc))
+        self.assertEqual(test_results.end_time,
+            datetime.datetime(2016, 1, 1, 8, 3, 0, tzinfo=pytz.utc))
 
 
 class NdtHtml5SeleniumDriverCustomClassTest(unittest.TestCase):
@@ -172,8 +205,7 @@ class NdtHtml5SeleniumDriverCustomClassTest(unittest.TestCase):
                          'illegal value shown for latency: Non numeric value')
 
     def test_results_page_displays_numeric_latency(self):
-        """A valid (numeric) latency results in an empty errors list.
-        """
+        """A valid (numeric) latency results in an empty errors list."""
 
         # Mock so always returns a numeric value for a WebElement.text attribute
         class NewWebElement(object):
