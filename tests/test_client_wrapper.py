@@ -46,7 +46,7 @@ class ClientWrapperTimeoutTest(unittest.TestCase):
         test_results = selenium_driver.perform_test(
             url='http://ndt.iupui.mlab4.nuq1t.measurement-lab.org:7123/',
             browser='firefox',
-            timeout_time=1)
+            timeout=1)
 
         mock_web_driver_wait.stop()
         # We have one error
@@ -55,6 +55,25 @@ class ClientWrapperTimeoutTest(unittest.TestCase):
         # And that is a timout error
         self.assertEqual(test_results.errors[0].message,
                          'Test did not complete within timeout period.')
+
+    def test_unimplemented_browsers_raise_error(self):
+        selenium_driver = client_wrapper.NdtHtml5SeleniumDriver()
+        with self.assertRaises(NotImplementedError):
+            selenium_driver.perform_test(url='http://ndt.mock-server.com:7123',
+                browser='chrome', timeout=1)
+        with self.assertRaises(NotImplementedError):
+            selenium_driver.perform_test(url='http://ndt.mock-server.com:7123',
+                browser='edge', timeout=1)
+        with self.assertRaises(NotImplementedError):
+            selenium_driver.perform_test(url='http://ndt.mock-server.com:7123',
+                browser='safari', timeout=1)
+
+    def test_unrecognized_browser_raises_error(self):
+        selenium_driver = client_wrapper.NdtHtml5SeleniumDriver()
+        with self.assertRaises(ValueError):
+            selenium_driver.perform_test(url='http://ndt.mock-server.com:7123',
+                browser='not_a_browser', timeout=1)
+
 
 
 class ClientWrapperCustomClassTest(unittest.TestCase):
@@ -108,7 +127,7 @@ class ClientWrapperCustomClassTest(unittest.TestCase):
         test_results = selenium_driver.perform_test(
             url='http://ndt.iupui.mlab4.nuq1t.measurement-lab.org:7123/',
             browser='firefox',
-            timeout_time=1000)
+            timeout=1000)
 
         # And the appropriate error objects are contained in
         # the list
@@ -163,7 +182,7 @@ class ClientWrapperCustomClassTest(unittest.TestCase):
         test_results = selenium_driver.perform_test(
             url='http://ndt.iupui.mlab4.nuq1t.measurement-lab.org:7123/',
             browser='firefox',
-            timeout_time=1000)
+            timeout=1000)
         self.assertEqual(test_results.latency, '72')
         # And an error object is not contained in the list
         self.assertEqual(len(test_results.errors), 0)
@@ -192,7 +211,7 @@ class ClientWrapperInvalidURLTest(unittest.TestCase):
         selenium_driver = client_wrapper.NdtHtml5SeleniumDriver()
         test_results = selenium_driver.perform_test(url='invalid_url',
                                                     browser='firefox',
-                                                    timeout_time=1)
+                                                    timeout=1)
         mock_driver.stop()
 
         # We have one error
