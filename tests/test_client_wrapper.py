@@ -112,7 +112,6 @@ class NdtHtml5SeleniumDriverGeneralTest(unittest.TestCase):
         # mock datetime.now() function returns.
         base_date = datetime.datetime(2016, 1, 1, 8, 0, 0, tzinfo=pytz.utc)
         dates = [base_date + datetime.timedelta(0, 60) * x for x in range(5)]
-        print(dates)
         def mock_dates(_):
             return dates.pop(0)
 
@@ -126,7 +125,6 @@ class NdtHtml5SeleniumDriverGeneralTest(unittest.TestCase):
                 url='http://ndt.mock-server.com:7123/',
                 browser='firefox',
                 timeout=1)
-            print(test_results)
 
         # And the sequence of returned values follows the expected timeline
         # that the readings are taken in.

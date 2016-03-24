@@ -92,39 +92,40 @@ class NdtHtml5SeleniumDriver(object):
         Returns:
             A populated NdtResult object.
         """
-        result_values = {'start_time': None,
-                          'end_time': None,
-                          'c2s_start_time': None,
-                          's2c_start_time': None,
-                          'errors': []}
+        result = NdtResult(start_time=None,
+            end_time=None,
+            c2s_start_time=None,
+            s2c_start_time=None,
+            errors=[])
+
         with contextlib.closing(_create_browser(browser)) as driver:
             try:
                 driver.get(url)
             except exceptions.WebDriverException:
                 message = 'Failed to load test UI.'
-                result_values['errors'].append(TestError(
+                result.errors.append(TestError(
                     datetime.datetime.now(pytz.utc), message))
-                return NdtResult(**result_values)
+                return result
             driver.find_element_by_id('websocketButton').click()
 
             start_button = driver.find_elements_by_xpath(
                 "//*[contains(text(), 'Start Test')]")[0]
             start_button.click()
-            result_values['start_time'] = datetime.datetime.now(pytz.utc)
+            result.start_time = datetime.datetime.now(pytz.utc)
 
             try:
-                result_values = _record_test_in_progress_values(
-                    result_values, driver, timeout)
+                result = _record_test_in_progress_values(
+                    result, driver, timeout)
 
-                result_values = _populate_metric_values(result_values, driver)
+                result = _populate_metric_values(result, driver)
 
             except exceptions.TimeoutException:
                 message = 'Test did not complete within timeout period.'
-                result_values['errors'].append(TestError(
+                result.errors.append(TestError(
                     datetime.datetime.now(pytz.utc), message))
-                return NdtResult(**result_values)
+                return result
 
-            return NdtResult(**result_values)
+            return result
 
 
 def _create_browser(browser):
@@ -143,25 +144,26 @@ def _create_browser(browser):
     raise ValueError('Invalid browser specified: %s' % browser)
 
 
-def _record_test_in_progress_values(result_values, driver, timeout):
+def _record_test_in_progress_values(result, driver, timeout):
     """Records values that are measured while the NDT test is in progress.
 
     Measures s2c_start_time, c2s_end_time, and end_time, which are stored in
-    result_values. These times are measured while the NDT test is in progress.
+    an instance of NdtResult. These times are measured while the NDT test is
+    in progress.
 
     Args:
+        result: An instance of NdtResult.
         driver: An instance of a Selenium webdriver browser class.
-        result_values: A dictionary that stores the results of the NDT test.
         timeout: The number of seconds that the driver will wait for
             each element to become visible before timing out.
 
     Returns:
-        result_values
+        An instance of NdtResult.
     """
     # wait until 'Now Testing your upload speed' is displayed
     upload_speed_text = driver.find_elements_by_xpath(
         "//*[contains(text(), 'your upload speed')]")[0]
-    result_values['c2s_start_time'] = _record_time_when_element_displayed(
+    result.c2s_start_time = _record_time_when_element_displayed(
         upload_speed_text,
         driver,
         timeout=timeout)
@@ -169,18 +171,18 @@ def _record_test_in_progress_values(result_values, driver, timeout):
     # wait until 'Now Testing your download speed' is displayed
     download_speed_text = driver.find_elements_by_xpath(
         "//*[contains(text(), 'your download speed')]")[0]
-    result_values['s2c_start_time'] = _record_time_when_element_displayed(
+    result.s2c_start_time = _record_time_when_element_displayed(
         download_speed_text,
         driver,
         timeout=timeout)
 
     # wait until the results page appears
     results_text = driver.find_element_by_id('results')
-    result_values['end_time'] = _record_time_when_element_displayed(
+    result.end_time = _record_time_when_element_displayed(
         results_text,
         driver,
         timeout=timeout)
-    return result_values
+    return result
 
 
 def _record_time_when_element_displayed(element, driver, timeout):
@@ -192,6 +194,7 @@ def _record_time_when_element_displayed(element, driver, timeout):
 
     Args:
         element: A selenium webdriver element.
+        driver: An instance of a Selenium webdriver browser class.
         timeout: The number of seconds that the driver will wait for
             each element to become visible before timing out.
 
@@ -205,54 +208,51 @@ def _record_time_when_element_displayed(element, driver, timeout):
     return datetime.datetime.now(pytz.utc)
 
 
-def _populate_metric_values(result_values, driver):
-    """Populates result_values with metrics from page, checks values are valid.
+def _populate_metric_values(result, driver):
+    """Populates NdtResult with metrics from page, checks values are valid.
 
-    Populdates result_values with metrics from the NDT test page. Checks that
-    the values for upload (c2s) throughput, download (s2c) throughput, and
-    latency within the result_values dict are valid.
+    Populates the NdtResult instance with metrics from the NDT test page. Checks
+    thatthe values for upload (c2s) throughput, download (s2c) throughput, and
+    latency within the NdtResult instance dict are valid.
 
     Args:
+        result: An instance of NdtResult.
         driver: An instance of a Selenium webdriver browser class.
-        result_values:  A dictionary that stores the results of the NDT test.
 
     Returns:
-        result_values
+        An instance of NdtResult.
     """
-    result_values['c2s_throughput'] = driver.find_element_by_id(
+    result.c2s_throughput = driver.find_element_by_id(
         'upload-speed').text
-    result_values = _validate_metric(result_values,
-                                                 'c2s_throughput')
-    result_values['s2c_throughput'] = driver.find_element_by_id(
+    result = _validate_metric(result, result.c2s_throughput,'c2s_throughput')
+    result.s2c_throughput = driver.find_element_by_id(
         'download-speed').text
-    result_values = _validate_metric(result_values,
-                                                 's2c_throughput')
-    result_values['latency'] = driver.find_element_by_id('latency').text
-    result_values = _validate_metric(result_values, 'latency')
-    return result_values
+    result = _validate_metric(result, result.s2c_throughput, 's2c_throughput')
+    result.latency = driver.find_element_by_id('latency').text
+    result = _validate_metric(result, result.latency, 'latency')
+    return result
 
 
-def _validate_metric(result_values, metric):
+def _validate_metric(result, metric, metric_name):
     """Checks whether a given metric is a valid numeric value.
 
-    For a given metric in result_values, checks that it is a valid numeric
-    value. If not, an error is added to result_values' errors list.
+    For a given metric, checks that it is a valid numeric value. If not, an
+    error is added to the list contained in the NdtResult instance attribute.
 
     Args:
-        result_values: A dictionary that stores the results of the NDT test.
-        metric: The name of the metric to validate.
+        result: An instance of NdtResult.
+        metric: The value of the metric that is to be evaluated.
+        metric_name: A string representing the name of the metric to validate.
 
     Returns:
-        A dictionary that stores the results of the NDT test.
+        An instance of NdtResult.
     """
     try:
-        float(result_values[metric])
+        float(metric)
     except ValueError:
-        message = 'illegal value shown for ' + metric + ': ' + \
-            str(result_values[metric])
-        result_values['errors'].append(TestError(
-            datetime.datetime.now(pytz.utc), message))
-    return result_values
+        message = 'illegal value shown for ' + metric_name + ': ' + str(metric)
+        result.errors.append(TestError(datetime.datetime.now(pytz.utc), message))
+    return result
 
 
 def main():
