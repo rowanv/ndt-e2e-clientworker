@@ -41,7 +41,6 @@ class NdtHtml5SeleniumDriverGeneralTest(unittest.TestCase):
         self.mock_visibility.return_value = True
 
     def test_invalid_URL_throws_error(self):
-
         self.mock_browser.get.side_effect = exceptions.WebDriverException(
             u'Failed to load test UI.')
 

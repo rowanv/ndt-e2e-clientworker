@@ -100,19 +100,15 @@ class NdtHtml5SeleniumDriver(object):
 
         with contextlib.closing(_create_browser(browser)) as driver:
 
-            load_url_success, result = _load_url(driver, url, result)
-            if not load_url_success:
+            if not _load_url(driver, url, result):
                 return result
 
-            result = _click_start_button(driver, result)
+            _click_start_button(driver, result)
 
-            record_success, result = _record_test_in_progress_values(
-                result, driver, timeout)
-            if not record_success:
+            if not _record_test_in_progress_values(result, driver, timeout):
                 return result
 
-            populate_success, result = _populate_metric_values(result, driver)
-            if not populate_success:
+            if not _populate_metric_values(result, driver):
                 return result
 
             return result
@@ -124,7 +120,8 @@ def _create_browser(browser):
     Args:
         browser: Can be one of 'firefox', 'chrome', 'edge', or 'safari'
 
-    Returns: An instance of a Selenium webdriver browser class corresponding to
+    Returns:
+        An instance of a Selenium webdriver browser class corresponding to
         the specified browser.
     """
     if browser == 'firefox':
@@ -135,25 +132,24 @@ def _create_browser(browser):
 
 
 def _load_url(driver, url, result):
-    '''Loads the URL in a Selenium driver for an NDT test.
+    """Loads the URL in a Selenium driver for an NDT test.
 
     Args:
         driver: An instance of a Selenium webdriver.
         url: The The URL of an NDT server to test against.
         result: An instance of NdtResult.
 
-    Returns: A tuple (bool, result)
-        bool: True if loading the URL was successful, false if otherwise.
-        result: An instance of NdtResult.
-    '''
+    Returns:
+        True if loading the URL was successful, False if otherwise.
+    """
     try:
         driver.get(url)
     except exceptions.WebDriverException:
         message = 'Failed to load test UI.'
         result.errors.append(TestError(
             datetime.datetime.now(pytz.utc), message))
-        return False, result
-    return True, result
+        return False
+    return True
 
 
 def _click_start_button(driver, result):
@@ -165,9 +161,6 @@ def _click_start_button(driver, result):
     Args:
         driver: An instance of a Selenium webdriver browser class.
         result: An instance of an NdtResult class.
-
-    Returns:
-        An instance of an NdtResult class.
     """
     driver.find_element_by_id('websocketButton').click()
 
@@ -175,7 +168,6 @@ def _click_start_button(driver, result):
         "//*[contains(text(), 'Start Test')]")[0]
     start_button.click()
     result.start_time = datetime.datetime.now(pytz.utc)
-    return result
 
 
 def _record_test_in_progress_values(result, driver, timeout):
@@ -191,10 +183,8 @@ def _record_test_in_progress_values(result, driver, timeout):
         timeout: The number of seconds that the driver will wait for
             each element to become visible before timing out.
 
-    Returns: A tuple (bool, result).
-        bool: True if recording the measured values was successful, False
-            if otherwise.
-        result: An instance of NdtResult.
+    Returns:
+        True if recording the measured values was successful, False if otherwise.
     """
     try:
         # wait until 'Now Testing your upload speed' is displayed
@@ -222,8 +212,8 @@ def _record_test_in_progress_values(result, driver, timeout):
         message = 'Test did not complete within timeout period.'
         result.errors.append(TestError(
             datetime.datetime.now(pytz.utc), message))
-        return False, result
-    return True, result
+        return False
+    return True
 
 
 def _record_time_when_element_displayed(element, driver, timeout):
@@ -260,10 +250,9 @@ def _populate_metric_values(result, driver):
         result: An instance of NdtResult.
         driver: An instance of a Selenium webdriver browser class.
 
-    Returns: A tuple (bool, result)
-        bool: True if populating metrics and checking their values was successful.
+    Returns:
+        True if populating metrics and checking their values was successful.
             False if otherwise.
-        result: An instance of NdtResult.
     """
     try:
         result.c2s_throughput = driver.find_element_by_id('upload-speed').text
@@ -278,8 +267,8 @@ def _populate_metric_values(result, driver):
         message = 'Test did not complete within timeout period.'
         result.errors.append(TestError(
             datetime.datetime.now(pytz.utc), message))
-        return False, result
-    return True, result
+        return False
+    return True
 
 
 def _validate_metric(result, metric, metric_name):
