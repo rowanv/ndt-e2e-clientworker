@@ -1,0 +1,13 @@
+#!/bin/bash
+#
+# Build steps to validate client_wrapper.
+
+( # Run unit tests and calculate code coverage.
+  coverage run --source client_wrapper -m unittest discover
+) &&
+( # Check that source has correct formatting.
+  yapf --diff --recursive --style google ./
+) &&
+( # Run static analysis for Python bugs/cruft.
+  pyflakes client_wrapper/*.py tests/*.py
+)
