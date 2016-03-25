@@ -12,17 +12,49 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import argparse
+
 import html5_driver
 
+NDT_HTML5_CLIENT = 'ndt_js'
 
-def main():
-    selenium_driver = html5_driver.NdtHtml5SeleniumDriver()
-    test_results = selenium_driver.perform_test(
-        url='http://ndt.iupui.mlab4.nuq1t.measurement-lab.org:7123/',
-        browser='firefox',
-        timeout=20)
-    print(test_results)
+
+def main(args):
+    if args.client == NDT_HTML5_CLIENT:
+        driver = html5_driver.NdtHtml5SeleniumDriver(args.browser,
+                                                     args.client_url,
+                                                     timeout=20)
+    else:
+        raise ValueError('unsupported NDT client: %s' % args.client)
+
+    for i in range(args.iterations):
+        print 'starting iteration %d...' % (i + 1)
+        result = driver.perform_test()
+        print '\tc2s_throughput: %s Mbps' % result.c2s_throughput
+        print '\ts2c_throughput: %s Mbps' % result.s2c_throughput
+        if result.errors:
+            print '\terrors:'
+            for error in result.errors:
+                print '\t * %s: %s' % (
+                    error.timestamp.strftime('%y-%m-%d %H:%M:%S'),
+                    error.message)
 
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser(
+        prog='NDT E2E Testing Client Wrapper',
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('--client',
+                        help='NDT client implementation to run',
+                        choices=(NDT_HTML5_CLIENT,),
+                        required=True)
+    parser.add_argument('--browser',
+                        help='Browser to run under (for browser-based client)',
+                        choices=('chrome', 'firefox', 'safari', 'edge'))
+    parser.add_argument('--client_url',
+                        help='URL of NDT client (for server-hosted clients)')
+    parser.add_argument('--iterations',
+                        help='Number of iterations to run',
+                        type=int,
+                        default=1)
+    main(parser.parse_args())

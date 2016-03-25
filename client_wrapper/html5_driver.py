@@ -26,17 +26,21 @@ import results
 
 class NdtHtml5SeleniumDriver(object):
 
-    def perform_test(self, url, browser, timeout):
-        """Performs an NDT test with the HTML5 client in the specified browser.
-
-        Performs a full NDT test (both s2c and c2s) using the specified
-        browser.
+    def __init__(self, browser, url, timeout):
+        """Creates a NDT HTML5 client driver for the given URL and browser.
 
         Args:
             url: The URL of an NDT server to test against.
             browser: Can be one of 'firefox', 'chrome', 'edge', or 'safari'.
-            timeout: The number of seconds that the driver will wait for
-                each element to become visible before timing out.
+            timeout: The number of seconds that the driver will wait for each
+                element to become visible before timing out.
+        """
+        self._browser = browser
+        self._url = url
+        self._timeout = timeout
+
+    def perform_test(self):
+        """Performs a full NDT test (both s2c and c2s) with the HTML5 client.
 
         Returns:
             A populated NdtResult object.
@@ -47,14 +51,15 @@ class NdtHtml5SeleniumDriver(object):
                                    s2c_start_time=None,
                                    errors=[])
 
-        with contextlib.closing(_create_browser(browser)) as driver:
+        with contextlib.closing(_create_browser(self._browser)) as driver:
 
-            if not _load_url(driver, url, result):
+            if not _load_url(driver, self._url, result):
                 return result
 
             _click_start_button(driver, result)
 
-            if not _record_test_in_progress_values(result, driver, timeout):
+            if not _record_test_in_progress_values(result, driver,
+                                                   self._timeout):
                 return result
 
             if not _populate_metric_values(result, driver):
