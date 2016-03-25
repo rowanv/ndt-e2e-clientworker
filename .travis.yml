@@ -3,7 +3,12 @@ language: python
 python:
   - "2.7"
 install:
-    - pip install coveralls
+    # Requirements needed to run application
+    - pip install -r requirements.txt
+    # Requirements needed to run application tests
+    - pip install -r test_requirements.txt
+    # Requirements needed for Travis CI
+    - pip install coveralls==1.1
     - pip install yapf==0.6.2
     - pip install pyflakes==1.0.0
 script:
