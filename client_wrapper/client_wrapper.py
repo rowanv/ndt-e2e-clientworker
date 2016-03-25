@@ -99,26 +99,20 @@ class NdtHtml5SeleniumDriver(object):
                            errors=[])
 
         with contextlib.closing(_create_browser(browser)) as driver:
-            try:
-                driver.get(url)
-            except exceptions.WebDriverException:
-                message = 'Failed to load test UI.'
-                result.errors.append(TestError(
-                    datetime.datetime.now(pytz.utc), message))
+
+            load_url_success, result = _load_url(driver, url, result)
+            if not load_url_success:
                 return result
 
             result = _click_start_button(driver, result)
 
-            try:
-                result = _record_test_in_progress_values(result, driver,
-                                                         timeout)
+            record_success, result = _record_test_in_progress_values(
+                result, driver, timeout)
+            if not record_success:
+                return result
 
-                result = _populate_metric_values(result, driver)
-
-            except exceptions.TimeoutException:
-                message = 'Test did not complete within timeout period.'
-                result.errors.append(TestError(
-                    datetime.datetime.now(pytz.utc), message))
+            populate_success, result = _populate_metric_values(result, driver)
+            if not populate_success:
                 return result
 
             return result
@@ -138,6 +132,28 @@ def _create_browser(browser):
     if browser in ['chrome', 'edge', 'safari']:
         raise NotImplementedError
     raise ValueError('Invalid browser specified: %s' % browser)
+
+
+def _load_url(driver, url, result):
+    '''Loads the URL in a Selenium driver for an NDT test.
+
+    Args:
+        driver: An instance of a Selenium webdriver.
+        url: The The URL of an NDT server to test against.
+        result: An instance of NdtResult.
+
+    Returns: A tuple (bool, result)
+        bool: True if loading the URL was successful, false if otherwise.
+        result: An instance of NdtResult.
+    '''
+    try:
+        driver.get(url)
+    except exceptions.WebDriverException:
+        message = 'Failed to load test UI.'
+        result.errors.append(TestError(
+            datetime.datetime.now(pytz.utc), message))
+        return False, result
+    return True, result
 
 
 def _click_start_button(driver, result):
@@ -175,31 +191,39 @@ def _record_test_in_progress_values(result, driver, timeout):
         timeout: The number of seconds that the driver will wait for
             each element to become visible before timing out.
 
-    Returns:
-        An instance of NdtResult.
+    Returns: A tuple (bool, result).
+        bool: True if recording the measured values was successful, False
+            if otherwise.
+        result: An instance of NdtResult.
     """
-    # wait until 'Now Testing your upload speed' is displayed
-    upload_speed_text = driver.find_elements_by_xpath(
-        "//*[contains(text(), 'your upload speed')]")[0]
-    result.c2s_start_time = _record_time_when_element_displayed(
-        upload_speed_text,
-        driver,
-        timeout=timeout)
+    try:
+        # wait until 'Now Testing your upload speed' is displayed
+        upload_speed_text = driver.find_elements_by_xpath(
+            "//*[contains(text(), 'your upload speed')]")[0]
+        result.c2s_start_time = _record_time_when_element_displayed(
+            upload_speed_text,
+            driver,
+            timeout=timeout)
 
-    # wait until 'Now Testing your download speed' is displayed
-    download_speed_text = driver.find_elements_by_xpath(
-        "//*[contains(text(), 'your download speed')]")[0]
-    result.s2c_start_time = _record_time_when_element_displayed(
-        download_speed_text,
-        driver,
-        timeout=timeout)
+        # wait until 'Now Testing your download speed' is displayed
+        download_speed_text = driver.find_elements_by_xpath(
+            "//*[contains(text(), 'your download speed')]")[0]
+        result.s2c_start_time = _record_time_when_element_displayed(
+            download_speed_text,
+            driver,
+            timeout=timeout)
 
-    # wait until the results page appears
-    results_text = driver.find_element_by_id('results')
-    result.end_time = _record_time_when_element_displayed(results_text,
-                                                          driver,
-                                                          timeout=timeout)
-    return result
+        # wait until the results page appears
+        results_text = driver.find_element_by_id('results')
+        result.end_time = _record_time_when_element_displayed(results_text,
+                                                              driver,
+                                                              timeout=timeout)
+    except exceptions.TimeoutException:
+        message = 'Test did not complete within timeout period.'
+        result.errors.append(TestError(
+            datetime.datetime.now(pytz.utc), message))
+        return False, result
+    return True, result
 
 
 def _record_time_when_element_displayed(element, driver, timeout):
@@ -236,16 +260,26 @@ def _populate_metric_values(result, driver):
         result: An instance of NdtResult.
         driver: An instance of a Selenium webdriver browser class.
 
-    Returns:
-        An instance of NdtResult.
+    Returns: A tuple (bool, result)
+        bool: True if populating metrics and checking their values was successful.
+            False if otherwise.
+        result: An instance of NdtResult.
     """
-    result.c2s_throughput = driver.find_element_by_id('upload-speed').text
-    result = _validate_metric(result, result.c2s_throughput, 'c2s_throughput')
-    result.s2c_throughput = driver.find_element_by_id('download-speed').text
-    result = _validate_metric(result, result.s2c_throughput, 's2c_throughput')
-    result.latency = driver.find_element_by_id('latency').text
-    result = _validate_metric(result, result.latency, 'latency')
-    return result
+    try:
+        result.c2s_throughput = driver.find_element_by_id('upload-speed').text
+        result = _validate_metric(result, result.c2s_throughput,
+                                  'c2s_throughput')
+        result.s2c_throughput = driver.find_element_by_id('download-speed').text
+        result = _validate_metric(result, result.s2c_throughput,
+                                  's2c_throughput')
+        result.latency = driver.find_element_by_id('latency').text
+        result = _validate_metric(result, result.latency, 'latency')
+    except exceptions.TimeoutException:
+        message = 'Test did not complete within timeout period.'
+        result.errors.append(TestError(
+            datetime.datetime.now(pytz.utc), message))
+        return False, result
+    return True, result
 
 
 def _validate_metric(result, metric, metric_name):
