@@ -12,12 +12,7 @@ install:
     - pip install yapf==0.6.2
     - pip install pyflakes==1.0.0
 script:
-    # Run unit tests and calculate code coverage.
-    - coverage run --source client_wrapper -m unittest discover
-    # Check that source has correct formatting.
-    - yapf --diff --recursive --style google ./
-    # Run static analysis for Python bugs/cruft.
-    - pyflakes client_wrapper/*.py tests/*.py
+    ./build
 after_success:
     coveralls
 
