@@ -19,14 +19,14 @@ import pytz
 import freezegun
 import selenium.webdriver.support.expected_conditions as selenium_expected_conditions
 from selenium.common import exceptions
-from client_wrapper import client_wrapper
+from client_wrapper import html5_driver
 
 
 class NdtHtml5SeleniumDriverGeneralTest(unittest.TestCase):
 
     def setUp(self):
         self.mock_browser = mock.MagicMock()
-        self.mock_driver = mock.patch.object(client_wrapper.webdriver,
+        self.mock_driver = mock.patch.object(html5_driver.webdriver,
                                              'Firefox',
                                              autospec=True,
                                              return_value=self.mock_browser)
@@ -44,7 +44,7 @@ class NdtHtml5SeleniumDriverGeneralTest(unittest.TestCase):
         self.mock_browser.get.side_effect = exceptions.WebDriverException(
             u'Failed to load test UI.')
 
-        selenium_driver = client_wrapper.NdtHtml5SeleniumDriver()
+        selenium_driver = html5_driver.NdtHtml5SeleniumDriver()
         test_results = selenium_driver.perform_test(url='invalid_url',
                                                     browser='firefox',
                                                     timeout=1)
@@ -58,11 +58,11 @@ class NdtHtml5SeleniumDriverGeneralTest(unittest.TestCase):
 
     def test_timeout_throws_error(self):
         # Call to webdriverwait throws timeout exception
-        with mock.patch.object(client_wrapper.ui,
+        with mock.patch.object(html5_driver.ui,
                                'WebDriverWait',
                                side_effect=exceptions.TimeoutException,
                                autospec=True):
-            selenium_driver = client_wrapper.NdtHtml5SeleniumDriver()
+            selenium_driver = html5_driver.NdtHtml5SeleniumDriver()
             test_results = selenium_driver.perform_test(
                 url='http://ndt.mock-server.com:7123/',
                 browser='firefox',
@@ -76,7 +76,7 @@ class NdtHtml5SeleniumDriverGeneralTest(unittest.TestCase):
                          'Test did not complete within timeout period.')
 
     def test_unimplemented_browsers_raise_error(self):
-        selenium_driver = client_wrapper.NdtHtml5SeleniumDriver()
+        selenium_driver = html5_driver.NdtHtml5SeleniumDriver()
         with self.assertRaises(NotImplementedError):
             selenium_driver.perform_test(url='http://ndt.mock-server.com:7123',
                                          browser='chrome',
@@ -91,7 +91,7 @@ class NdtHtml5SeleniumDriverGeneralTest(unittest.TestCase):
                                          timeout=1)
 
     def test_unrecognized_browser_raises_error(self):
-        selenium_driver = client_wrapper.NdtHtml5SeleniumDriver()
+        selenium_driver = html5_driver.NdtHtml5SeleniumDriver()
         with self.assertRaises(ValueError):
             selenium_driver.perform_test(url='http://ndt.mock-server.com:7123',
                                          browser='not_a_browser',
@@ -102,10 +102,8 @@ class NdtHtml5SeleniumDriverGeneralTest(unittest.TestCase):
         # When we patch datetime so it shows our current date as 2016-01-01
         self.assertEqual(datetime.datetime.now(), datetime.datetime(2016, 1, 1))
 
-        with mock.patch.object(client_wrapper.ui,
-                               'WebDriverWait',
-                               autospec=True):
-            selenium_driver = client_wrapper.NdtHtml5SeleniumDriver()
+        with mock.patch.object(html5_driver.ui, 'WebDriverWait', autospec=True):
+            selenium_driver = html5_driver.NdtHtml5SeleniumDriver()
             test_results = selenium_driver.perform_test(
                 url='http://ndt.mock-server.com:7123/',
                 browser='firefox',
@@ -131,12 +129,12 @@ class NdtHtml5SeleniumDriverGeneralTest(unittest.TestCase):
         base_date = datetime.datetime(2016, 1, 1, 8, 0, 0, tzinfo=pytz.utc)
         dates = [base_date + datetime.timedelta(0, 60) * x for x in range(5)]
 
-        with mock.patch.object(client_wrapper.datetime,
+        with mock.patch.object(html5_driver.datetime,
                                'datetime',
                                autospec=True) as mocked_datetime:
 
             mocked_datetime.now.side_effect = dates
-            selenium_driver = client_wrapper.NdtHtml5SeleniumDriver()
+            selenium_driver = html5_driver.NdtHtml5SeleniumDriver()
 
             test_results = selenium_driver.perform_test(
                 url='http://ndt.mock-server.com:7123/',
@@ -221,12 +219,12 @@ class NdtHtml5SeleniumDriverCustomClassTest(unittest.TestCase):
             def find_elements_by_xpath(self, xpath):
                 return [NewWebElement()]
 
-        with mock.patch.object(client_wrapper.webdriver,
+        with mock.patch.object(html5_driver.webdriver,
                                'Firefox',
                                autospec=True,
                                return_value=NewDriver()):
 
-            selenium_driver = client_wrapper.NdtHtml5SeleniumDriver()
+            selenium_driver = html5_driver.NdtHtml5SeleniumDriver()
             test_results = selenium_driver.perform_test(
                 url='http://ndt.mock-server.com:7123/',
                 browser='firefox',
@@ -269,12 +267,12 @@ class NdtHtml5SeleniumDriverCustomClassTest(unittest.TestCase):
             def find_elements_by_xpath(self, xpath):
                 return [NewWebElement()]
 
-        with mock.patch.object(client_wrapper.webdriver,
+        with mock.patch.object(html5_driver.webdriver,
                                'Firefox',
                                autospec=True,
                                return_value=NewDriver()):
 
-            selenium_driver = client_wrapper.NdtHtml5SeleniumDriver()
+            selenium_driver = html5_driver.NdtHtml5SeleniumDriver()
             test_results = selenium_driver.perform_test(
                 url='http://ndt.mock-server.com:7123/',
                 browser='firefox',
