@@ -59,9 +59,9 @@ class NdtResult(object):
     """
 
     def __init__(self,
-                 start_time,
-                 end_time,
-                 errors,
+                 start_time=None,
+                 end_time=None,
+                 errors=[],
                  c2s_result=None,
                  s2c_result=None,
                  latency=None):
