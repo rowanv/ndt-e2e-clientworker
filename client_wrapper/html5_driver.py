@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import division
 import contextlib
 import datetime
 
@@ -45,11 +46,7 @@ class NdtHtml5SeleniumDriver(object):
         Returns:
             A populated NdtResult object.
         """
-        result = results.NdtResult(start_time=None,
-                                   end_time=None,
-                                   c2s_start_time=None,
-                                   s2c_start_time=None,
-                                   errors=[])
+        result = results.NdtResult(start_time=None, end_time=None, errors=[])
 
         with contextlib.closing(_create_browser(self._browser)) as driver:
 
@@ -213,14 +210,15 @@ def _populate_metric_values(result, driver):
             False if otherwise.
     """
     try:
-        result.c2s_result.throughput = driver.find_element_by_id('upload-speed').text
-        result = _validate_metric(result, result.c2s_result.throughput,
-                                  'c2s_throughput')
-        result.s2c_result.throughput = driver.find_element_by_id('download-speed').text
-        result = _validate_metric(result, result.s2c_result.throughput,
-                                  's2c_throughput')
+        c2s_throughput = driver.find_element_by_id('upload-speed').text
+        if _validate_metric(result, c2s_throughput, 'c2s_throughput'):
+            # Convert c2s kb/s to Mb/s
+            result.c2s_result.throughput = str(float(c2s_throughput) / 1000)
+        result.s2c_result.throughput = driver.find_element_by_id(
+            'download-speed').text
+        _validate_metric(result, result.s2c_result.throughput, 's2c_throughput')
         result.latency = driver.find_element_by_id('latency').text
-        result = _validate_metric(result, result.latency, 'latency')
+        _validate_metric(result, result.latency, 'latency')
     except exceptions.TimeoutException:
         message = 'Test did not complete within timeout period.'
         result.errors.append(results.TestError(
@@ -241,7 +239,7 @@ def _validate_metric(result, metric, metric_name):
         metric_name: A string representing the name of the metric to validate.
 
     Returns:
-        An instance of NdtResult.
+        bool: True if metric validation was successful
     """
     try:
         float(metric)
@@ -249,4 +247,5 @@ def _validate_metric(result, metric, metric_name):
         message = 'illegal value shown for ' + metric_name + ': ' + str(metric)
         result.errors.append(results.TestError(
             datetime.datetime.now(pytz.utc), message))
-    return result
+        return False
+    return True

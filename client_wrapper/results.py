@@ -29,6 +29,7 @@ class NdtSingleTestResult(object):
         self.start_time = start_time
         self.end_time = end_time
 
+
 class TestError(object):
     """Log message of an error encountered in the test.
 
@@ -53,8 +54,6 @@ class NdtResult(object):
         c2s_result: The NdtSingleResult for the c2s (upload) test.
         s2c_result: The NdtSingleResult for the s2c (download) test.
         latency: The reported latency (in milliseconds).
-        c2s_throughput: The reported upload (c2s) throughput (in kb/s).
-        s2c_throughput: The reported download (s2c) throughput (in kb/s).
         errors: a list of TestError objects representing any errors encountered
             during the tests (or an empty list if all tests were successful).
     """
@@ -62,20 +61,16 @@ class NdtResult(object):
     def __init__(self,
                  start_time,
                  end_time,
-                 c2s_start_time,
-                 s2c_start_time,
                  errors,
-                 latency=None,
-                 c2s_throughput=None,
-                 s2c_throughput=None):
+                 c2s_result=None,
+                 s2c_result=None,
+                 latency=None):
         self.start_time = start_time
         self.end_time = end_time
-        self.c2s_start_time = c2s_start_time
-        self.s2c_start_time = s2c_start_time
+        self.c2s_result = c2s_result
+        self.s2c_result = s2c_result
         self.errors = errors
         self.latency = latency
-        self.c2s_throughput = c2s_throughput
-        self.s2c_throughput = s2c_throughput
 
     def __str__(self):
         return 'NDT Results:\n Start Time: %s,\n End Time: %s'\
