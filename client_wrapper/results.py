@@ -13,6 +13,22 @@
 # limitations under the License.
 
 
+class NdtSingleTestResult(object):
+    """Result of a single NDT test.
+
+    Attributes:
+        throughput: The final recorded throughput (in Mbps).
+        start_time: The datetime when the test began (or None if the test
+            never began).
+        end_time: The datetime when the test competed (or None if the test
+            never completed).
+    """
+
+    def __init__(self, throughput=None, start_time=None, end_time=None):
+        self.throughput = throughput
+        self.start_time = start_time
+        self.end_time = end_time
+
 class TestError(object):
     """Log message of an error encountered in the test.
 
@@ -34,8 +50,8 @@ class NdtResult(object):
             the driver pushed the 'Start Test' button).
         end_time: The datetime at which the tests completed (i.e. the time the
             results page loaded).
-        c2s_start_time: The NdtSingleResult for the c2s (upload) test.
-        s2c_start_time: The NdtSingleResult for the s2c (download) test.
+        c2s_result: The NdtSingleResult for the c2s (upload) test.
+        s2c_result: The NdtSingleResult for the s2c (download) test.
         latency: The reported latency (in milliseconds).
         c2s_throughput: The reported upload (c2s) throughput (in kb/s).
         s2c_throughput: The reported download (s2c) throughput (in kb/s).

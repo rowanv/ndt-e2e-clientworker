@@ -144,21 +144,25 @@ def _record_test_in_progress_values(result, driver, timeout):
         # wait until 'Now Testing your upload speed' is displayed
         upload_speed_text = driver.find_elements_by_xpath(
             "//*[contains(text(), 'your upload speed')]")[0]
-        result.c2s_start_time = _record_time_when_element_displayed(
+        result.c2s_result = results.NdtSingleTestResult()
+        result.c2s_result.start_time = _record_time_when_element_displayed(
             upload_speed_text,
             driver,
             timeout=timeout)
+        result.c2s_result.end_time = datetime.datetime.now(pytz.utc)
 
         # wait until 'Now Testing your download speed' is displayed
         download_speed_text = driver.find_elements_by_xpath(
             "//*[contains(text(), 'your download speed')]")[0]
-        result.s2c_start_time = _record_time_when_element_displayed(
+        result.s2c_result = results.NdtSingleTestResult()
+        result.s2c_result.start_time = _record_time_when_element_displayed(
             download_speed_text,
             driver,
             timeout=timeout)
 
         # wait until the results page appears
         results_text = driver.find_element_by_id('results')
+        result.s2c_result.end_time = datetime.datetime.now(pytz.utc)
         result.end_time = _record_time_when_element_displayed(results_text,
                                                               driver,
                                                               timeout=timeout)
@@ -209,11 +213,11 @@ def _populate_metric_values(result, driver):
             False if otherwise.
     """
     try:
-        result.c2s_throughput = driver.find_element_by_id('upload-speed').text
-        result = _validate_metric(result, result.c2s_throughput,
+        result.c2s_result.throughput = driver.find_element_by_id('upload-speed').text
+        result = _validate_metric(result, result.c2s_result.throughput,
                                   'c2s_throughput')
-        result.s2c_throughput = driver.find_element_by_id('download-speed').text
-        result = _validate_metric(result, result.s2c_throughput,
+        result.s2c_result.throughput = driver.find_element_by_id('download-speed').text
+        result = _validate_metric(result, result.s2c_result.throughput,
                                   's2c_throughput')
         result.latency = driver.find_element_by_id('latency').text
         result = _validate_metric(result, result.latency, 'latency')

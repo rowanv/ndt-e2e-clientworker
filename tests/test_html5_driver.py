@@ -129,12 +129,11 @@ class NdtHtml5SeleniumDriverGeneralTest(unittest.TestCase):
         # and ending at 2016-1-1 8:04:00. These will be the values that our
         # mock datetime.now() function returns.
         base_date = datetime.datetime(2016, 1, 1, 8, 0, 0, tzinfo=pytz.utc)
-        dates = [base_date + datetime.timedelta(0, 60) * x for x in range(5)]
+        dates = [base_date + datetime.timedelta(0, 60) * x for x in range(6)]
 
         with mock.patch.object(html5_driver.datetime,
                                'datetime',
                                autospec=True) as mocked_datetime:
-
             mocked_datetime.now.side_effect = dates
             test_results = html5_driver.NdtHtml5SeleniumDriver(
                 browser='firefox',
@@ -151,7 +150,7 @@ class NdtHtml5SeleniumDriverGeneralTest(unittest.TestCase):
                                            0,
                                            0,
                                            tzinfo=pytz.utc))
-        self.assertEqual(test_results.c2s_start_time,
+        self.assertEqual(test_results.c2s_result.start_time,
                          datetime.datetime(2016,
                                            1,
                                            1,
@@ -159,12 +158,12 @@ class NdtHtml5SeleniumDriverGeneralTest(unittest.TestCase):
                                            1,
                                            0,
                                            tzinfo=pytz.utc))
-        self.assertEqual(test_results.s2c_start_time,
+        self.assertEqual(test_results.s2c_result.start_time,
                          datetime.datetime(2016,
                                            1,
                                            1,
                                            8,
-                                           2,
+                                           3,
                                            0,
                                            tzinfo=pytz.utc))
         self.assertEqual(test_results.end_time,
@@ -172,7 +171,7 @@ class NdtHtml5SeleniumDriverGeneralTest(unittest.TestCase):
                                            1,
                                            1,
                                            8,
-                                           3,
+                                           5,
                                            0,
                                            tzinfo=pytz.utc))
 
