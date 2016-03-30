@@ -30,8 +30,9 @@ def main(args):
     for i in range(args.iterations):
         print 'starting iteration %d...' % (i + 1)
         result = driver.perform_test()
-        print '\tc2s_throughput: %s Mbps' % result.c2s_throughput
-        print '\ts2c_throughput: %s Mbps' % result.s2c_throughput
+
+        print '\tc2s_throughput: %s Mbps' % result.c2s_result.throughput
+        print '\ts2c_throughput: %s Mbps' % result.s2c_result.throughput
         if result.errors:
             print '\terrors:'
             for error in result.errors:

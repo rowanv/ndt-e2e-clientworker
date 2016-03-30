@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import division
 import contextlib
 import datetime
 
@@ -45,11 +46,7 @@ class NdtHtml5SeleniumDriver(object):
         Returns:
             A populated NdtResult object.
         """
-        result = results.NdtResult(start_time=None,
-                                   end_time=None,
-                                   c2s_start_time=None,
-                                   s2c_start_time=None,
-                                   errors=[])
+        result = results.NdtResult(start_time=None, end_time=None, errors=[])
 
         with contextlib.closing(_create_browser(self._browser)) as driver:
 
@@ -144,21 +141,25 @@ def _record_test_in_progress_values(result, driver, timeout):
         # wait until 'Now Testing your upload speed' is displayed
         upload_speed_text = driver.find_elements_by_xpath(
             "//*[contains(text(), 'your upload speed')]")[0]
-        result.c2s_start_time = _record_time_when_element_displayed(
+        result.c2s_result = results.NdtSingleTestResult()
+        result.c2s_result.start_time = _record_time_when_element_displayed(
             upload_speed_text,
             driver,
             timeout=timeout)
+        result.c2s_result.end_time = datetime.datetime.now(pytz.utc)
 
         # wait until 'Now Testing your download speed' is displayed
         download_speed_text = driver.find_elements_by_xpath(
             "//*[contains(text(), 'your download speed')]")[0]
-        result.s2c_start_time = _record_time_when_element_displayed(
+        result.s2c_result = results.NdtSingleTestResult()
+        result.s2c_result.start_time = _record_time_when_element_displayed(
             download_speed_text,
             driver,
             timeout=timeout)
 
         # wait until the results page appears
         results_text = driver.find_element_by_id('results')
+        result.s2c_result.end_time = datetime.datetime.now(pytz.utc)
         result.end_time = _record_time_when_element_displayed(results_text,
                                                               driver,
                                                               timeout=timeout)
@@ -209,14 +210,25 @@ def _populate_metric_values(result, driver):
             False if otherwise.
     """
     try:
-        result.c2s_throughput = driver.find_element_by_id('upload-speed').text
-        result = _validate_metric(result, result.c2s_throughput,
-                                  'c2s_throughput')
-        result.s2c_throughput = driver.find_element_by_id('download-speed').text
-        result = _validate_metric(result, result.s2c_throughput,
-                                  's2c_throughput')
+        c2s_throughput = driver.find_element_by_id('upload-speed').text
+        c2s_throughput_units = driver.find_element_by_id(
+            'upload-speed-units').text
+
+        result.c2s_result.throughput = _parse_throughput(
+            result.errors, c2s_throughput, c2s_throughput_units,
+            'c2s throughput')
+
+        s2c_throughput = driver.find_element_by_id('download-speed').text
+
+        s2c_throughput_units = driver.find_element_by_id(
+            'download-speed-units').text
+        result.s2c_result.throughput = _parse_throughput(
+            result.errors, s2c_throughput, s2c_throughput_units,
+            's2c throughput')
+
         result.latency = driver.find_element_by_id('latency').text
-        result = _validate_metric(result, result.latency, 'latency')
+        result.latency = _validate_metric(result.errors, result.latency,
+                                          'latency')
     except exceptions.TimeoutException:
         message = 'Test did not complete within timeout period.'
         result.errors.append(results.TestError(
@@ -225,24 +237,81 @@ def _populate_metric_values(result, driver):
     return True
 
 
-def _validate_metric(result, metric, metric_name):
+def _parse_throughput(errors, throughput, throughput_units,
+                      throughput_metric_name):
+    """Converts metric into a valid numeric value in Mb/s .
+
+    For a given metric, checks that it is a valid numeric value. If not, an
+    error is added to the list contained in the NdtResult instance attribute.
+    If it is, it is converted into Mb/s where necessary.
+
+    Args:
+        errors: An errors list.
+        throughput: The throughput value that is to be evaluated.
+        throughput_units: The units for the throughput value that is to be
+        evaluated (one of kb/s, Mb/s, Gb/s).
+        throughput_metric_name: A string representing the name of the throughput
+        metric to validate.
+
+    Returns:
+        float representing the converted metric, None if an illegal value
+            is given.
+    """
+    if _convert_metric_to_float(errors, throughput, throughput_metric_name):
+        throughput = float(throughput)
+        if throughput_units == 'kb/s':
+            converted_throughput = throughput / 1000
+            return converted_throughput
+        elif throughput_units == 'Gb/s':
+            converted_throughput = throughput * 1000
+            return converted_throughput
+        elif throughput_units == 'Mb/s':
+            return throughput
+        else:
+            raise ValueError('Invalid throughput unit specified: %s' %
+                             throughput_units)
+    return None
+
+
+def _convert_metric_to_float(errors, metric, metric_name):
+    """Converts a given metric to a float, otherwise, adds an error object.
+
+    If a given metric can be converted to a float, it is converted. Otherwise,
+    a TestError object is added to errors.
+
+    Args:
+        errors: An errors list.
+        metric: The value of the metric that is to be evaluated.
+        metric_name: A string representing the name of the metric to validate.
+
+    Returns:
+        True if the validation was successful.
+    """
+
+    try:
+        float(metric)
+    except ValueError:
+        message = 'illegal value shown for ' + metric_name + ': ' + str(metric)
+        errors.append(results.TestError(
+            datetime.datetime.now(pytz.utc), message))
+        return False
+    return True
+
+
+def _validate_metric(errors, metric, metric_name):
     """Checks whether a given metric is a valid numeric value.
 
     For a given metric, checks that it is a valid numeric value. If not, an
     error is added to the list contained in the NdtResult instance attribute.
 
     Args:
-        result: An instance of NdtResult.
+        errors: An errors list.
         metric: The value of the metric that is to be evaluated.
         metric_name: A string representing the name of the metric to validate.
 
     Returns:
-        An instance of NdtResult.
+        A float if the metric was validated, otherwise, returns None.
     """
-    try:
-        float(metric)
-    except ValueError:
-        message = 'illegal value shown for ' + metric_name + ': ' + str(metric)
-        result.errors.append(results.TestError(
-            datetime.datetime.now(pytz.utc), message))
-    return result
+    if _convert_metric_to_float(errors, metric, metric_name):
+        return float(metric)
+    return None
