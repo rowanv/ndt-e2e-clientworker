@@ -51,17 +51,24 @@ class NdtResult(object):
             the driver pushed the 'Start Test' button).
         end_time: The datetime at which the tests completed (i.e. the time the
             results page loaded).
+        errors: A list of TestError objects representing any errors encountered
+            during the tests (or an empty list if all tests were successful).
         c2s_result: The NdtSingleResult for the c2s (upload) test.
         s2c_result: The NdtSingleResult for the s2c (download) test.
-        latency: The reported latency (in milliseconds).
-        errors: a list of TestError objects representing any errors encountered
-            during the tests (or an empty list if all tests were successful).
+        latency: The reported latency (in milliseconds) or None if the test did
+            not complete.
+        c2s_throughput: The reported upload (c2s) throughput (in kb/s).
+        s2c_throughput: The reported download (s2c) throughput (in kb/s).
+        os: Name of OS in which the test ran (e.g. "Windows").
+        os_version: OS version string (e.g. "10.0").
+        client: Shortname of the NDT client (e.g. "ndt_js").
+        client_version: Version string of the NDT client (e.g. "4.0.1").
     """
 
     def __init__(self,
-                 start_time,
-                 end_time,
-                 errors,
+                 start_time=None,
+                 end_time=None,
+                 errors=[],
                  c2s_result=None,
                  s2c_result=None,
                  latency=None):
@@ -71,6 +78,10 @@ class NdtResult(object):
         self.s2c_result = s2c_result
         self.errors = errors
         self.latency = latency
+        self.os = None
+        self.os_version = None
+        self.client = None
+        self.client_version = None
 
     def __str__(self):
         return 'NDT Results:\n Start Time: %s,\n End Time: %s'\
