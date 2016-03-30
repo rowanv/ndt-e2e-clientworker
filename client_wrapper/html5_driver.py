@@ -22,6 +22,7 @@ from selenium.webdriver.support import ui
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common import exceptions
 
+import names
 import results
 
 
@@ -75,9 +76,9 @@ def _create_browser(browser):
         An instance of a Selenium webdriver browser class corresponding to
         the specified browser.
     """
-    if browser == 'firefox':
+    if browser == names.FIREFOX:
         return webdriver.Firefox()
-    if browser in ['chrome', 'edge', 'safari']:
+    if browser in [names.CHROME, names.EDGE, names.SAFARI]:
         raise NotImplementedError
     raise ValueError('Invalid browser specified: %s' % browser)
 
