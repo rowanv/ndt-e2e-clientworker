@@ -29,4 +29,4 @@ SAFARI = 'safari'
 # OS shortnames
 WINDOWS_10 = 'win10'
 UBUNTU_14 = 'ubuntu14.04'
-OSX_CAPITAN = 'osx_capitan'
+OSX_10_11 = 'osx10.11'

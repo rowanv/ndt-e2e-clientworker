@@ -26,7 +26,7 @@ class CanonicalizeTest(unittest.TestCase):
                          canonicalize.os_to_shortname('Windows', '10.0'))
         self.assertEqual(names.UBUNTU_14,
                          canonicalize.os_to_shortname('Ubuntu', '14.04'))
-        self.assertEqual(names.OSX_CAPITAN,
+        self.assertEqual(names.OSX_10_11,
                          canonicalize.os_to_shortname('OSX', '10.11'))
 
     def test_os_to_shortname_raises_error_on_unsupported_platforms(self):
@@ -41,16 +41,16 @@ class CanonicalizeTest(unittest.TestCase):
 
     def test_browser_to_canonical_name_creates_valid_browser_strings(self):
         self.assertEqual(
-            'chrome_v49',
+            'chrome49',
             canonicalize.browser_to_canonical_name(names.CHROME, '49.0.2623'))
         self.assertEqual(
-            'firefox_v45',
+            'firefox45',
             canonicalize.browser_to_canonical_name(names.FIREFOX, '45.0'))
         self.assertEqual(
-            'edge_v25',
+            'edge25',
             canonicalize.browser_to_canonical_name(names.EDGE, '25.10586.0.0'))
         self.assertEqual(
-            'safari_v9',
+            'safari9',
             canonicalize.browser_to_canonical_name(names.SAFARI, '9.03'))
 
     def test_browser_to_canonical_name_raise_error_on_bad_version_strings(self):

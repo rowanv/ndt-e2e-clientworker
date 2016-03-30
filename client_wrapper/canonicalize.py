@@ -53,7 +53,7 @@ def os_to_shortname(os, os_version):
         'Ubuntu-14.04': names.UBUNTU_14,
         #TODO(mtlynch): Check whether this is the right version string for
         # El Capitan.
-        'OSX-10.11': names.OSX_CAPITAN,
+        'OSX-10.11': names.OSX_10_11,
     }
     key = '%s-%s' % (os, os_version)
     try:
@@ -66,21 +66,21 @@ def os_to_shortname(os, os_version):
 def browser_to_canonical_name(browser, browser_version):
     """Converts a browser and version to its canonical name.
 
-    Converts a browser to the format of "[name]_v[major version]", e.g.
-    "firefox_v49".
+    Converts a browser to the format of "[name][major version]", e.g.
+    "firefox49".
 
     Args:
-        browser: Browser name to convert to canonical name (e.g. "Firefox" or
-            "Edge").
+        browser: Browser name to convert to canonical name (e.g. "firefox" or
+            "edge").
         browser_version: Browser version string. This must contain at least one
             dot separator to separate the major version number from the rest of
             the version string (e.g. "1.56").
 
     Returns:
-        Returns the browser in shortname form, e.g. "firefox_v49".
+        Returns the browser in shortname form, e.g. "firefox49".
     """
     version_parts = browser_version.split('.')
     if len(version_parts) < 2:
         raise UnrecognizedVersionStringError(
             'Version string in unrecognized format: %s', browser_version)
-    return '%s_v%s' % (browser, version_parts[0])
+    return browser + version_parts[0]
