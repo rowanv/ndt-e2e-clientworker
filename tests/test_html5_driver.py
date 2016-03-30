@@ -232,10 +232,10 @@ class NdtHtml5SeleniumDriverCustomClassTest(unittest.TestCase):
         # the list
         self.assertEqual(
             test_results.errors[0].message,
-            'illegal value shown for c2s_throughput: Non numeric value')
+            'illegal value shown for c2s throughput: Non numeric value')
         self.assertEqual(
             test_results.errors[1].message,
-            'illegal value shown for s2c_throughput: Non numeric value')
+            'illegal value shown for s2c throughput: Non numeric value')
         self.assertEqual(test_results.errors[2].message,
                          'illegal value shown for latency: Non numeric value')
 
@@ -275,19 +275,18 @@ class NdtHtml5SeleniumDriverCustomClassTest(unittest.TestCase):
                 url='http://ndt.mock-server.com:7123/',
                 timeout=1000).perform_test()
 
-        self.assertEqual(test_results.latency, '72')
+        self.assertEqual(test_results.latency, 72.0)
         # And an error object is not contained in the list
         self.assertEqual(len(test_results.errors), 0)
 
-    def test_c2s_speed_conversion(self):
-        '''Test c2s speed converts from kb/s to Mb/s correctly.'''
+    def test_s2c_gbps_speed_conversion(self):
+        """Test s2c speed converts from Gb/s to Mb/s correctly."""
 
-        # If c2s speed and s2c speed are 72 in the browser
-        # Mock so always returns a numeric value for a WebElement.text attribute
+        # If s2c speed is 72 Gb/s and c2s is speed is 34 in the browser
         class NewWebElement(object):
 
-            def __init__(self):
-                self.text = '72'
+            def __init__(self, value):
+                self.text = value
 
             def click(self):
                 pass
@@ -301,10 +300,63 @@ class NdtHtml5SeleniumDriverCustomClassTest(unittest.TestCase):
                 pass
 
             def find_element_by_id(self, id):
-                return NewWebElement()
+                if id == 'download-speed-units':
+                    return NewWebElement('Gb/s')
+                elif id == 'download-speed':
+                    return NewWebElement(72)
+                else:
+                    return NewWebElement(34)
 
             def find_elements_by_xpath(self, xpath):
-                return [NewWebElement()]
+                return [NewWebElement('')]
+
+        with mock.patch.object(html5_driver.webdriver,
+                               'Firefox',
+                               autospec=True,
+                               return_value=NewDriver()):
+
+            test_results = html5_driver.NdtHtml5SeleniumDriver(
+                browser='firefox',
+                url='http://ndt.mock-server.com:7123/',
+                timeout=1000).perform_test()
+
+        # Then s2c is converted from Gb/s to Mb/s
+        self.assertEqual(test_results.s2c_result.throughput, 72000)
+        # And c2s is not
+        self.assertEqual(test_results.c2s_result.throughput, 34)
+        # And an error object is not contained in the list
+        self.assertEqual(len(test_results.errors), 0)
+
+    def test_c2s_kbps_speed_conversion(self):
+        """Test c2s speed converts from kb/s to Mb/s correctly."""
+
+        # If c2s speed is 72 kb/s and s2c speed is 34 in the browser
+        class NewWebElement(object):
+
+            def __init__(self, value):
+                self.text = value
+
+            def click(self):
+                pass
+
+        class NewDriver(object):
+
+            def get(self, url):
+                pass
+
+            def close(self):
+                pass
+
+            def find_element_by_id(self, id):
+                if id == 'upload-speed-units':
+                    return NewWebElement('kb/s')
+                elif id == 'upload-speed':
+                    return NewWebElement(72)
+                else:
+                    return NewWebElement(34)
+
+            def find_elements_by_xpath(self, xpath):
+                return [NewWebElement('')]
 
         with mock.patch.object(html5_driver.webdriver,
                                'Firefox',
@@ -317,9 +369,9 @@ class NdtHtml5SeleniumDriverCustomClassTest(unittest.TestCase):
                 timeout=1000).perform_test()
 
         # Then c2s is converted from kb/s to Mb/s
-        self.assertEqual(test_results.c2s_result.throughput, '0.072')
+        self.assertEqual(test_results.c2s_result.throughput, 0.072)
         # And s2c is not
-        self.assertEqual(test_results.s2c_result.throughput, '72')
+        self.assertEqual(test_results.s2c_result.throughput, 34)
         # And an error object is not contained in the list
         self.assertEqual(len(test_results.errors), 0)
 

@@ -211,14 +211,21 @@ def _populate_metric_values(result, driver):
     """
     try:
         c2s_throughput = driver.find_element_by_id('upload-speed').text
-        if _validate_metric(result, c2s_throughput, 'c2s_throughput'):
-            # Convert c2s kb/s to Mb/s
-            result.c2s_result.throughput = str(float(c2s_throughput) / 1000)
-        result.s2c_result.throughput = driver.find_element_by_id(
-            'download-speed').text
-        _validate_metric(result, result.s2c_result.throughput, 's2c_throughput')
+        c2s_throughput_units = driver.find_element_by_id(
+            'upload-speed-units').text
+
+        result.c2s_result.throughput = _parse_throughput(
+            result, c2s_throughput, c2s_throughput_units, 'c2s throughput')
+
+        s2c_throughput = driver.find_element_by_id('download-speed').text
+
+        s2c_throughput_units = driver.find_element_by_id(
+            'download-speed-units').text
+        result.s2c_result.throughput = _parse_throughput(
+            result, s2c_throughput, s2c_throughput_units, 's2c throughput')
+
         result.latency = driver.find_element_by_id('latency').text
-        _validate_metric(result, result.latency, 'latency')
+        result.latency = _validate_metric(result, result.latency, 'latency')
     except exceptions.TimeoutException:
         message = 'Test did not complete within timeout period.'
         result.errors.append(results.TestError(
@@ -227,19 +234,23 @@ def _populate_metric_values(result, driver):
     return True
 
 
-def _validate_metric(result, metric, metric_name):
-    """Checks whether a given metric is a valid numeric value.
+def _parse_throughput(result, metric, metric_units, metric_name):
+    """Converts metric into a valid numeric value in Mb/s .
 
     For a given metric, checks that it is a valid numeric value. If not, an
     error is added to the list contained in the NdtResult instance attribute.
+    If it is, it is converted into Mb/s where necessary.
 
     Args:
         result: An instance of NdtResult.
         metric: The value of the metric that is to be evaluated.
+        metric_units: The units for the metric that is to be evaluated (one of
+            kb/s, Mb/s, Gb/s).
         metric_name: A string representing the name of the metric to validate.
 
     Returns:
-        bool: True if metric validation was successful
+        bool: float representing the converted metric, None if an illegal value
+            is given.
     """
     try:
         float(metric)
@@ -247,5 +258,34 @@ def _validate_metric(result, metric, metric_name):
         message = 'illegal value shown for ' + metric_name + ': ' + str(metric)
         result.errors.append(results.TestError(
             datetime.datetime.now(pytz.utc), message))
-        return False
-    return True
+        return None
+
+    if metric_units == 'kb/s':
+        converted_metric = float(metric) / 1000
+        return converted_metric
+    elif metric_units == 'Gb/s':
+        converted_metric = float(metric) * 1000
+        return converted_metric
+    else:
+        return float(metric)
+
+
+def _validate_metric(result, metric, metric_name):
+    """Checks whether a given metric is a valid numeric value.
+    For a given metric, checks that it is a valid numeric value. If not, an
+    error is added to the list contained in the NdtResult instance attribute.
+    Args:
+        result: An instance of NdtResult.
+        metric: The value of the metric that is to be evaluated.
+        metric_name: A string representing the name of the metric to validate.
+    Returns:
+        A float if the metric was validated, otherwise, the original metric string.
+    """
+    try:
+        float(metric)
+    except ValueError:
+        message = 'illegal value shown for ' + metric_name + ': ' + str(metric)
+        result.errors.append(results.TestError(
+            datetime.datetime.now(pytz.utc), message))
+        return metric
+    return float(metric)
