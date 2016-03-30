@@ -100,81 +100,6 @@ class NdtHtml5SeleniumDriverGeneralTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             selenium_driver.perform_test()
 
-    @freezegun.freeze_time('2016-01-01', tz_offset=0)
-    def test_ndt_test_results_records_todays_times(self):
-        # When we patch datetime so it shows our current date as 2016-01-01
-        self.assertEqual(datetime.datetime.now(), datetime.datetime(2016, 1, 1))
-
-        with mock.patch.object(html5_driver.ui, 'WebDriverWait', autospec=True):
-            test_results = html5_driver.NdtHtml5SeleniumDriver(
-                browser='firefox',
-                url='http://ndt.mock-server.com:7123/',
-                timeout=1).perform_test()
-
-        # Then the readings for our test start and end times occur within
-        # today's date
-        self.assertEqual(test_results.start_time,
-                         datetime.datetime(2016,
-                                           1,
-                                           1,
-                                           tzinfo=pytz.utc))
-        self.assertEqual(test_results.end_time,
-                         datetime.datetime(2016,
-                                           1,
-                                           1,
-                                           tzinfo=pytz.utc))
-
-    def test_ndt_test_results_increments_time_correctly(self):
-        # Create a list of times every minute starting at 2016-1-1 8:00:00
-        # and ending at 2016-1-1 8:04:00. These will be the values that our
-        # mock datetime.now() function returns.
-        base_date = datetime.datetime(2016, 1, 1, 8, 0, 0, tzinfo=pytz.utc)
-        dates = [base_date + datetime.timedelta(0, 60) * x for x in range(6)]
-
-        with mock.patch.object(html5_driver.datetime,
-                               'datetime',
-                               autospec=True) as mocked_datetime:
-            mocked_datetime.now.side_effect = dates
-            test_results = html5_driver.NdtHtml5SeleniumDriver(
-                browser='firefox',
-                url='http://ndt.mock-server.com:7123/',
-                timeout=1).perform_test()
-
-        # And the sequence of returned values follows the expected timeline
-        # that the readings are taken in.
-        self.assertEqual(test_results.start_time,
-                         datetime.datetime(2016,
-                                           1,
-                                           1,
-                                           8,
-                                           0,
-                                           0,
-                                           tzinfo=pytz.utc))
-        self.assertEqual(test_results.c2s_result.start_time,
-                         datetime.datetime(2016,
-                                           1,
-                                           1,
-                                           8,
-                                           1,
-                                           0,
-                                           tzinfo=pytz.utc))
-        self.assertEqual(test_results.s2c_result.start_time,
-                         datetime.datetime(2016,
-                                           1,
-                                           1,
-                                           8,
-                                           3,
-                                           0,
-                                           tzinfo=pytz.utc))
-        self.assertEqual(test_results.end_time,
-                         datetime.datetime(2016,
-                                           1,
-                                           1,
-                                           8,
-                                           5,
-                                           0,
-                                           tzinfo=pytz.utc))
-
 
 class NdtHtml5SeleniumDriverCustomClassTest(unittest.TestCase):
 
@@ -243,13 +168,6 @@ class NdtHtml5SeleniumDriverCustomClassTest(unittest.TestCase):
         """A valid (numeric) latency results in an empty errors list."""
 
         # Mock so always returns a numeric value for a WebElement.text attribute
-        class NewWebElement(object):
-
-            def __init__(self):
-                self.text = '72'
-
-            def click(self):
-                pass
 
         class NewDriver(object):
 
@@ -260,10 +178,14 @@ class NdtHtml5SeleniumDriverCustomClassTest(unittest.TestCase):
                 pass
 
             def find_element_by_id(self, id):
-                return NewWebElement()
+                if id == 'download-speed-units':
+                    return mock.Mock(text='Mb/s', autospec=True)
+                elif id == 'upload-speed-units':
+                    return mock.Mock(text='Mb/s', autospec=True)
+                return mock.Mock(text='72', autospec=True)
 
             def find_elements_by_xpath(self, xpath):
-                return [NewWebElement()]
+                return [mock.Mock(autospec=True)]
 
         with mock.patch.object(html5_driver.webdriver,
                                'Firefox',
@@ -283,13 +205,6 @@ class NdtHtml5SeleniumDriverCustomClassTest(unittest.TestCase):
         """Test s2c speed converts from Gb/s to Mb/s correctly."""
 
         # If s2c speed is 72 Gb/s and c2s is speed is 34 in the browser
-        class NewWebElement(object):
-
-            def __init__(self, value):
-                self.text = value
-
-            def click(self):
-                pass
 
         class NewDriver(object):
 
@@ -301,14 +216,16 @@ class NdtHtml5SeleniumDriverCustomClassTest(unittest.TestCase):
 
             def find_element_by_id(self, id):
                 if id == 'download-speed-units':
-                    return NewWebElement('Gb/s')
+                    return mock.Mock(text='Gb/s', autospec=True)
                 elif id == 'download-speed':
-                    return NewWebElement(72)
+                    return mock.Mock(text='72', autospec=True)
+                elif id == 'upload-speed-units':
+                    return mock.Mock(text='Mb/s', autospec=True)
                 else:
-                    return NewWebElement(34)
+                    return mock.Mock(text='34', autospec=True)
 
             def find_elements_by_xpath(self, xpath):
-                return [NewWebElement('')]
+                return [mock.Mock(autospec=True)]
 
         with mock.patch.object(html5_driver.webdriver,
                                'Firefox',
@@ -331,13 +248,6 @@ class NdtHtml5SeleniumDriverCustomClassTest(unittest.TestCase):
         """Test c2s speed converts from kb/s to Mb/s correctly."""
 
         # If c2s speed is 72 kb/s and s2c speed is 34 in the browser
-        class NewWebElement(object):
-
-            def __init__(self, value):
-                self.text = value
-
-            def click(self):
-                pass
 
         class NewDriver(object):
 
@@ -349,14 +259,16 @@ class NdtHtml5SeleniumDriverCustomClassTest(unittest.TestCase):
 
             def find_element_by_id(self, id):
                 if id == 'upload-speed-units':
-                    return NewWebElement('kb/s')
+                    return mock.Mock(text='kb/s', autospec=True)
                 elif id == 'upload-speed':
-                    return NewWebElement(72)
+                    return mock.Mock(text='72', autospec=True)
+                elif id == 'download-speed-units':
+                    return mock.Mock(text='Mb/s', autospec=True)
                 else:
-                    return NewWebElement(34)
+                    return mock.Mock(text='34', autospec=True)
 
             def find_elements_by_xpath(self, xpath):
-                return [NewWebElement('')]
+                return [mock.Mock(autospec=True)]
 
         with mock.patch.object(html5_driver.webdriver,
                                'Firefox',
@@ -374,6 +286,134 @@ class NdtHtml5SeleniumDriverCustomClassTest(unittest.TestCase):
         self.assertEqual(test_results.s2c_result.throughput, 34)
         # And an error object is not contained in the list
         self.assertEqual(len(test_results.errors), 0)
+
+    @freezegun.freeze_time('2016-01-01', tz_offset=0)
+    def test_ndt_test_results_records_todays_times(self):
+
+        class NewDriver(object):
+
+            def get(self, url):
+                pass
+
+            def close(self):
+                pass
+
+            def find_element_by_id(self, id):
+                if id == 'upload-speed-units':
+                    return mock.Mock(text='kb/s', autospec=True)
+                elif id == 'download-speed-units':
+                    return mock.Mock(text='Mb/s', autospec=True)
+                elif id == 'upload-speed' or 'download-speed':
+                    return mock.Mock(text='72', autospec=True)
+                else:
+                    return mock.Mock(autospec=True)
+
+            def find_elements_by_xpath(self, xpath):
+                return [mock.Mock(autospec=True)]
+        # When we patch datetime so it shows our current date as 2016-01-01
+        self.assertEqual(datetime.datetime.now(), datetime.datetime(2016, 1, 1))
+
+        with mock.patch.object(html5_driver.webdriver,
+                               'Firefox',
+                               autospec=True,
+                               return_value=NewDriver()):
+
+            test_results = html5_driver.NdtHtml5SeleniumDriver(
+                browser='firefox',
+                url='http://ndt.mock-server.com:7123/',
+                timeout=1000).perform_test()
+
+        # Then the readings for our test start and end times occur within
+        # today's date
+        self.assertEqual(test_results.start_time,
+                         datetime.datetime(2016,
+                                           1,
+                                           1,
+                                           tzinfo=pytz.utc))
+        self.assertEqual(test_results.end_time,
+                         datetime.datetime(2016,
+                                           1,
+                                           1,
+                                           tzinfo=pytz.utc))
+
+    def test_ndt_test_results_increments_time_correctly(self):
+        # Create a list of times every minute starting at 2016-1-1 8:00:00
+        # and ending at 2016-1-1 8:04:00. These will be the values that our
+        # mock datetime.now() function returns.
+        base_date = datetime.datetime(2016, 1, 1, 8, 0, 0, tzinfo=pytz.utc)
+        dates = [base_date + datetime.timedelta(0, 60) * x for x in range(6)]
+
+        class NewDriver(object):
+
+            def get(self, url):
+                pass
+
+            def close(self):
+                pass
+
+            def find_element_by_id(self, id):
+                if id == 'upload-speed-units':
+                    return mock.Mock(text='kb/s', autospec=True)
+                elif id == 'upload-speed':
+                    return mock.Mock(text='72', autospec=True)
+                elif id == 'download-speed-units':
+                    return mock.Mock(text='Mb/s', autospec=True)
+                else:
+                    return mock.Mock(text='34', autospec=True)
+
+            def find_elements_by_xpath(self, xpath):
+                return [mock.Mock(autospec=True)]
+
+        mock_driver = mock.patch.object(html5_driver.webdriver,
+                                        'Firefox',
+                                        autospec=True,
+                                        return_value=NewDriver())
+        mock_driver.start()
+        with mock.patch.object(html5_driver.datetime,
+                               'datetime',
+                               autospec=True) as mocked_datetime:
+            mocked_datetime.now.side_effect = dates
+
+            test_results = html5_driver.NdtHtml5SeleniumDriver(
+                browser='firefox',
+                url='http://ndt.mock-server.com:7123/',
+                timeout=1).perform_test()
+        mock_driver.stop()
+
+        # And the sequence of returned values follows the expected timeline
+        # that the readings are taken in.
+        self.assertEqual(test_results.start_time,
+                         datetime.datetime(2016,
+                                           1,
+                                           1,
+                                           8,
+                                           0,
+                                           0,
+                                           tzinfo=pytz.utc))
+        self.assertEqual(test_results.c2s_result.start_time,
+                         datetime.datetime(2016,
+                                           1,
+                                           1,
+                                           8,
+                                           1,
+                                           0,
+                                           tzinfo=pytz.utc))
+        self.assertEqual(test_results.s2c_result.start_time,
+                         datetime.datetime(2016,
+                                           1,
+                                           1,
+                                           8,
+                                           3,
+                                           0,
+                                           tzinfo=pytz.utc))
+        self.assertEqual(test_results.end_time,
+                         datetime.datetime(2016,
+                                           1,
+                                           1,
+                                           8,
+                                           5,
+                                           0,
+                                           tzinfo=pytz.utc))
 
 
 if __name__ == '__main__':
