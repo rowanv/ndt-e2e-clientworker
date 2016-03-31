@@ -185,7 +185,8 @@ def _record_time_when_element_displayed(element, driver, timeout):
         timeout: The number of seconds that the driver will wait for
             each element to become visible before timing out.
 
-    Returns: A datetime object with a timezone information attribute.
+    Returns:
+        A datetime object with a timezone information attribute.
 
     Raises:
         TimeoutException: If the element does not become visible before the
