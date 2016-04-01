@@ -5,6 +5,9 @@
 # Run unit tests and calculate code coverage.
 coverage run --source client_wrapper -m unittest discover &&
 # Check that source has correct formatting.
-yapf --diff --recursive --style google ./ &&
+yapf --diff --recursive --style google ./ --exclude=./third_party/* &&
 # Run static analysis for Python bugs/cruft.
-pyflakes client_wrapper/*.py tests/*.py
+pyflakes client_wrapper/*.py tests/*.py &&
+# Check docstrings for style consistency.
+PYTHONPATH=$PYTHONPATH:$(pwd)/third_party/docstringchecker \
+  pylint --reports=n client_wrapper tests
