@@ -9,5 +9,5 @@ yapf --diff --recursive --style google ./ --exclude=./third_party/* &&
 # Run static analysis for Python bugs/cruft.
 pyflakes client_wrapper/*.py tests/*.py &&
 # Check docstrings for style consistency.
-env PYTHONPATH=$PYTHONPATH:$(pwd)/third_party/docstringchecker \
+PYTHONPATH=$PYTHONPATH:$(pwd)/third_party/docstringchecker \
   pylint --reports=n client_wrapper tests
