@@ -56,7 +56,7 @@ class NdtHtml5SeleniumDriverGeneralTest(unittest.TestCase):
         self.assertEqual(test_results.errors[0].message,
                          'Failed to load test UI.')
 
-    def test_timeout_throws_error(self):
+    def test_test_in_progress_timeout_throws_error(self):
         # Call to webdriverwait throws timeout exception
         with mock.patch.object(html5_driver.ui,
                                'WebDriverWait',
@@ -73,6 +73,7 @@ class NdtHtml5SeleniumDriverGeneralTest(unittest.TestCase):
         # And that is a timout error
         self.assertEqual(test_results.errors[0].message,
                          'Test did not complete within timeout period.')
+
 
 
     def test_unrecognized_browser_raises_error(self):
@@ -266,6 +267,40 @@ class NdtHtml5SeleniumDriverCustomClassTest(unittest.TestCase):
 
         mock_driver.stop()
 
+    def test_reading_in_result_page_timeout_throws_error(self):
+
+        # If a timeout exception occurs when the driver attempts to
+        # read the metric page
+        class NewDriver(object):
+
+            def get(self, url):
+                pass
+
+            def close(self):
+                pass
+
+            def find_element_by_id(self, id):
+                if id == 'upload-speed':
+                    raise exceptions.TimeoutException
+                else:
+                    return mock.Mock(text='34', autospec=True)
+
+            def find_elements_by_xpath(self, xpath):
+                return [mock.Mock(autospec=True)]
+
+        with mock.patch.object(html5_driver.webdriver,
+                               'Firefox',
+                               autospec=True,
+                               return_value=NewDriver()):
+
+            test_results = html5_driver.NdtHtml5SeleniumDriver(
+                browser='firefox',
+                url='http://ndt.mock-server.com:7123/',
+                timeout=1000).perform_test()
+
+        # The appropriate error object is contained in the list.
+        self.assertEqual(test_results.errors[0].message,
+            'Test did not complete within timeout period.')
     def test_chrome_driver_can_be_used_for_test(self):
 
         class NewDriver(object):
