@@ -74,8 +74,6 @@ class NdtHtml5SeleniumDriverGeneralTest(unittest.TestCase):
         self.assertEqual(test_results.errors[0].message,
                          'Test did not complete within timeout period.')
 
-
-
     def test_unrecognized_browser_raises_error(self):
         selenium_driver = html5_driver.NdtHtml5SeleniumDriver(
             browser='not_a_browser',
@@ -95,10 +93,126 @@ class NdtHtml5SeleniumDriverCustomClassTest(unittest.TestCase):
         self.mock_visibility.return_value = True
         self.mock_visibility.start()
 
+    def test_results_page_displays_non_numeric_latency(self):
+
+        class NewDriver(object):
+
+            def get(self, url):
+                pass
+
+            def close(self):
+                pass
+
+            def find_element_by_id(self, id):
+                if id == 'upload-speed-units':
+                    return mock.Mock(text='kb/s', autospec=True)
+                elif id == 'download-speed-units':
+                    return mock.Mock(text='Mb/s', autospec=True)
+                elif id == 'latency':
+                    return mock.Mock(text='Non-numeric value', autospec=True)
+                else:
+                    return mock.Mock(text='34', autospec=True)
+
+            def find_elements_by_xpath(self, xpath):
+                return [mock.Mock(autospec=True)]
+
+        with mock.patch.object(html5_driver.webdriver,
+                               'Firefox',
+                               autospec=True,
+                               return_value=NewDriver()):
+
+            test_results = html5_driver.NdtHtml5SeleniumDriver(
+                browser='firefox',
+                url='http://ndt.mock-server.com:7123/',
+                timeout=1000).perform_test()
+
+        # And the appropriate error object is contained in the list
+        self.assertEqual(len(test_results.errors), 1)
+        self.assertEqual(test_results.errors[0].message,
+                         'illegal value shown for latency: Non-numeric value')
+
+    def test_results_page_displays_non_numeric_c2s_throughput(self):
+
+        class NewDriver(object):
+
+            def get(self, url):
+                pass
+
+            def close(self):
+                pass
+
+            def find_element_by_id(self, id):
+                if id == 'upload-speed-units':
+                    return mock.Mock(text='kb/s', autospec=True)
+                elif id == 'download-speed-units':
+                    return mock.Mock(text='Mb/s', autospec=True)
+                elif id == 'upload-speed':
+                    return mock.Mock(text='Non-numeric value', autospec=True)
+                else:
+                    return mock.Mock(text='34', autospec=True)
+
+            def find_elements_by_xpath(self, xpath):
+                return [mock.Mock(autospec=True)]
+
+        with mock.patch.object(html5_driver.webdriver,
+                               'Firefox',
+                               autospec=True,
+                               return_value=NewDriver()):
+
+            test_results = html5_driver.NdtHtml5SeleniumDriver(
+                browser='firefox',
+                url='http://ndt.mock-server.com:7123/',
+                timeout=1000).perform_test()
+
+        # And only the appropriate error object is contained in the list
+        self.assertEqual(len(test_results.errors), 1)
+        self.assertEqual(
+            test_results.errors[0].message,
+            'illegal value shown for c2s throughput: Non-numeric value')
+
+    def test_results_page_displays_non_numeric_s2c_throughput(self):
+
+        class NewDriver(object):
+
+            def get(self, url):
+                pass
+
+            def close(self):
+                pass
+
+            def find_element_by_id(self, id):
+                if id == 'upload-speed-units':
+                    return mock.Mock(text='kb/s', autospec=True)
+                elif id == 'download-speed-units':
+                    return mock.Mock(text='Mb/s', autospec=True)
+                elif id == 'download-speed':
+                    return mock.Mock(text='Non-numeric value', autospec=True)
+                else:
+                    return mock.Mock(text='34', autospec=True)
+
+            def find_elements_by_xpath(self, xpath):
+                return [mock.Mock(autospec=True)]
+
+        with mock.patch.object(html5_driver.webdriver,
+                               'Firefox',
+                               autospec=True,
+                               return_value=NewDriver()):
+
+            test_results = html5_driver.NdtHtml5SeleniumDriver(
+                browser='firefox',
+                url='http://ndt.mock-server.com:7123/',
+                timeout=1000).perform_test()
+
+        # And only the appropriate error object is contained in the list
+        self.assertEqual(len(test_results.errors), 1)
+        self.assertEqual(
+            test_results.errors[0].message,
+            'illegal value shown for s2c throughput: Non-numeric value')
+
     def test_results_page_displays_non_numeric_metrics(self):
         """A results page with non-numeric metrics results in error list errors.
 
-        When latency, c2s_throughput, and s2c_throughput are non-numeric values,
+        When latency, c2s_throughput, and s2c_throughput are all non-numeric values,
         corresponding error objects are added to the errors list that indicate
         that each of these values is invalid.
         """
@@ -252,15 +366,15 @@ class NdtHtml5SeleniumDriverCustomClassTest(unittest.TestCase):
                 return [mock.Mock(autospec=True)]
 
         mock_driver = mock.patch.object(html5_driver.webdriver,
-                               'Firefox',
-                               autospec=True,
-                               return_value=NewDriver())
+                                        'Firefox',
+                                        autospec=True,
+                                        return_value=NewDriver())
         mock_driver.start()
 
         # And a value error is raised because the c2s throughput
         # unit was invalid.
         with self.assertRaises(ValueError):
-            test_results = html5_driver.NdtHtml5SeleniumDriver(
+            html5_driver.NdtHtml5SeleniumDriver(
                 browser='firefox',
                 url='http://ndt.mock-server.com:7123/',
                 timeout=1000).perform_test()
@@ -300,7 +414,8 @@ class NdtHtml5SeleniumDriverCustomClassTest(unittest.TestCase):
 
         # The appropriate error object is contained in the list.
         self.assertEqual(test_results.errors[0].message,
-            'Test did not complete within timeout period.')
+                         'Test did not complete within timeout period.')
+
     def test_chrome_driver_can_be_used_for_test(self):
 
         class NewDriver(object):
@@ -323,7 +438,6 @@ class NdtHtml5SeleniumDriverCustomClassTest(unittest.TestCase):
                     return mock.Mock(text='Mb/s', autospec=True)
                 else:
                     return mock.Mock(text='34', autospec=True)
-
 
         with mock.patch.object(html5_driver.webdriver,
                                'Chrome',
@@ -365,7 +479,6 @@ class NdtHtml5SeleniumDriverCustomClassTest(unittest.TestCase):
                 else:
                     return mock.Mock(text='34', autospec=True)
 
-
         with mock.patch.object(html5_driver.webdriver,
                                'Edge',
                                autospec=True,
@@ -384,6 +497,7 @@ class NdtHtml5SeleniumDriverCustomClassTest(unittest.TestCase):
         self.assertEqual(len(test_results.errors), 0)
 
     def test_safari_driver_can_be_used_for_test(self):
+
         class NewDriver(object):
 
             def get(self, url):
@@ -405,7 +519,6 @@ class NdtHtml5SeleniumDriverCustomClassTest(unittest.TestCase):
                 else:
                     return mock.Mock(text='34', autospec=True)
 
-
         with mock.patch.object(html5_driver.webdriver,
                                'Safari',
                                autospec=True,
@@ -422,7 +535,6 @@ class NdtHtml5SeleniumDriverCustomClassTest(unittest.TestCase):
         self.assertEqual(test_results.c2s_result.throughput, 34)
         # And an error object is not contained in the list
         self.assertEqual(len(test_results.errors), 0)
-
 
     def test_c2s_kbps_speed_conversion(self):
         """Test c2s speed converts from kb/s to Mb/s correctly."""
