@@ -74,23 +74,6 @@ class NdtHtml5SeleniumDriverGeneralTest(unittest.TestCase):
         self.assertEqual(test_results.errors[0].message,
                          'Test did not complete within timeout period.')
 
-    def test_unimplemented_browsers_raise_error(self):
-
-        with self.assertRaises(NotImplementedError):
-            html5_driver.NdtHtml5SeleniumDriver(
-                browser='chrome',
-                url='http://ndt.mock-server.com:7123',
-                timeout=1).perform_test()
-        with self.assertRaises(NotImplementedError):
-            html5_driver.NdtHtml5SeleniumDriver(
-                browser='edge',
-                url='http://ndt.mock-server.com:7123',
-                timeout=1).perform_test()
-        with self.assertRaises(NotImplementedError):
-            html5_driver.NdtHtml5SeleniumDriver(
-                browser='safari',
-                url='http://ndt.mock-server.com:7123',
-                timeout=1).perform_test()
 
     def test_unrecognized_browser_raises_error(self):
         selenium_driver = html5_driver.NdtHtml5SeleniumDriver(
@@ -243,6 +226,129 @@ class NdtHtml5SeleniumDriverCustomClassTest(unittest.TestCase):
         self.assertEqual(test_results.c2s_result.throughput, 34)
         # And an error object is not contained in the list
         self.assertEqual(len(test_results.errors), 0)
+
+    def test_chrome_driver_can_be_used_for_test(self):
+
+        class NewDriver(object):
+
+            def get(self, url):
+                pass
+
+            def close(self):
+                pass
+
+            def find_elements_by_xpath(self, xpath):
+                return [mock.Mock(autospec=True)]
+
+            def find_element_by_id(self, id):
+                if id == 'download-speed-units':
+                    return mock.Mock(text='Gb/s', autospec=True)
+                elif id == 'download-speed':
+                    return mock.Mock(text='72', autospec=True)
+                elif id == 'upload-speed-units':
+                    return mock.Mock(text='Mb/s', autospec=True)
+                else:
+                    return mock.Mock(text='34', autospec=True)
+
+
+        with mock.patch.object(html5_driver.webdriver,
+                               'Chrome',
+                               autospec=True,
+                               return_value=NewDriver()):
+
+            test_results = html5_driver.NdtHtml5SeleniumDriver(
+                browser='chrome',
+                url='http://ndt.mock-server.com:7123/',
+                timeout=1000).perform_test()
+
+        # Then s2c is converted from Gb/s to Mb/s
+        self.assertEqual(test_results.s2c_result.throughput, 72000)
+        # And c2s is not
+        self.assertEqual(test_results.c2s_result.throughput, 34)
+        # And an error object is not contained in the list
+        self.assertEqual(len(test_results.errors), 0)
+
+    def test_edge_driver_can_be_used_for_test(self):
+
+        class NewDriver(object):
+
+            def get(self, url):
+                pass
+
+            def close(self):
+                pass
+
+            def find_elements_by_xpath(self, xpath):
+                return [mock.Mock(autospec=True)]
+
+            def find_element_by_id(self, id):
+                if id == 'download-speed-units':
+                    return mock.Mock(text='Gb/s', autospec=True)
+                elif id == 'download-speed':
+                    return mock.Mock(text='72', autospec=True)
+                elif id == 'upload-speed-units':
+                    return mock.Mock(text='Mb/s', autospec=True)
+                else:
+                    return mock.Mock(text='34', autospec=True)
+
+
+        with mock.patch.object(html5_driver.webdriver,
+                               'Edge',
+                               autospec=True,
+                               return_value=NewDriver()):
+
+            test_results = html5_driver.NdtHtml5SeleniumDriver(
+                browser='edge',
+                url='http://ndt.mock-server.com:7123/',
+                timeout=1000).perform_test()
+
+        # Then s2c is converted from Gb/s to Mb/s
+        self.assertEqual(test_results.s2c_result.throughput, 72000)
+        # And c2s is not
+        self.assertEqual(test_results.c2s_result.throughput, 34)
+        # And an error object is not contained in the list
+        self.assertEqual(len(test_results.errors), 0)
+
+    def test_safari_driver_can_be_used_for_test(self):
+        class NewDriver(object):
+
+            def get(self, url):
+                pass
+
+            def close(self):
+                pass
+
+            def find_elements_by_xpath(self, xpath):
+                return [mock.Mock(autospec=True)]
+
+            def find_element_by_id(self, id):
+                if id == 'download-speed-units':
+                    return mock.Mock(text='Gb/s', autospec=True)
+                elif id == 'download-speed':
+                    return mock.Mock(text='72', autospec=True)
+                elif id == 'upload-speed-units':
+                    return mock.Mock(text='Mb/s', autospec=True)
+                else:
+                    return mock.Mock(text='34', autospec=True)
+
+
+        with mock.patch.object(html5_driver.webdriver,
+                               'Safari',
+                               autospec=True,
+                               return_value=NewDriver()):
+
+            test_results = html5_driver.NdtHtml5SeleniumDriver(
+                browser='safari',
+                url='http://ndt.mock-server.com:7123/',
+                timeout=1000).perform_test()
+
+        # Then s2c is converted from Gb/s to Mb/s
+        self.assertEqual(test_results.s2c_result.throughput, 72000)
+        # And c2s is not
+        self.assertEqual(test_results.c2s_result.throughput, 34)
+        # And an error object is not contained in the list
+        self.assertEqual(len(test_results.errors), 0)
+
 
     def test_c2s_kbps_speed_conversion(self):
         """Test c2s speed converts from kb/s to Mb/s correctly."""

@@ -78,8 +78,12 @@ def _create_browser(browser):
     """
     if browser == names.FIREFOX:
         return webdriver.Firefox()
-    if browser in [names.CHROME, names.EDGE, names.SAFARI]:
-        raise NotImplementedError
+    elif browser == names.CHROME:
+        return webdriver.Chrome()
+    elif browser == names.EDGE:
+        return webdriver.Edge()
+    elif browser == names.SAFARI:
+        return webdriver.Safari()
     raise ValueError('Invalid browser specified: %s' % browser)
 
 
