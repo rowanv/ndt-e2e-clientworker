@@ -227,6 +227,45 @@ class NdtHtml5SeleniumDriverCustomClassTest(unittest.TestCase):
         # And an error object is not contained in the list
         self.assertEqual(len(test_results.errors), 0)
 
+    def test_invalid_throughput_unit_raises_error(self):
+
+        class NewDriver(object):
+
+            def get(self, url):
+                pass
+
+            def close(self):
+                pass
+
+            def find_element_by_id(self, id):
+                if id == 'download-speed-units':
+                    return mock.Mock(text='Gb/s', autospec=True)
+                elif id == 'download-speed':
+                    return mock.Mock(text='72', autospec=True)
+                elif id == 'upload-speed-units':
+                    return mock.Mock(text='not a unit', autospec=True)
+                else:
+                    return mock.Mock(text='34', autospec=True)
+
+            def find_elements_by_xpath(self, xpath):
+                return [mock.Mock(autospec=True)]
+
+        mock_driver = mock.patch.object(html5_driver.webdriver,
+                               'Firefox',
+                               autospec=True,
+                               return_value=NewDriver())
+        mock_driver.start()
+
+        # And a value error is raised because the c2s throughput
+        # unit was invalid.
+        with self.assertRaises(ValueError):
+            test_results = html5_driver.NdtHtml5SeleniumDriver(
+                browser='firefox',
+                url='http://ndt.mock-server.com:7123/',
+                timeout=1000).perform_test()
+
+        mock_driver.stop()
+
     def test_chrome_driver_can_be_used_for_test(self):
 
         class NewDriver(object):
