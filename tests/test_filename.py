@@ -89,7 +89,7 @@ class FilenamesTest(unittest.TestCase):
         with self.assertRaises(filename.FilenameCreationError):
             get_result_filename(os='Ubuntu',
                                 os_version='14.04',
-                                browser='firefox',
+                                browser=names.FIREFOX,
                                 browser_version='invalid version',
                                 client=names.NDT_HTML5,
                                 start_time=datetime.datetime(2015, 9, 17, 8, 9,
