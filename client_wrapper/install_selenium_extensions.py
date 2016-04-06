@@ -55,17 +55,22 @@ def _download_temp_file(url, file_name):
     Args:
         url: A string representing the URL the file is to be downloaded from.
         file_name: A string representing the name of the file to be downloaded.
+
+    Returns:
+        A string representing the path to which the file was downloaded.
     """
     temp_dir = tempfile.mkdtemp()
     download_path = os.path.join(temp_dir, file_name)
     print('File downloading to %s' % download_path)
     urllib.URLopener().retrieve(url, download_path)
+    return download_path
 
 
 def _download_edge_drivers():
     """Downloads Edge drivers for Selenium."""
     remote_file = driver_urls['edge_windows_10']
-    _download_temp_file(remote_file['url'], remote_file['file_name'])
+    download_path = _download_temp_file(remote_file['url'], remote_file['file_name'])
+    os.system('msiexec /i %s /qn' % download_path)
 
 
 def _download_safari_drivers():
