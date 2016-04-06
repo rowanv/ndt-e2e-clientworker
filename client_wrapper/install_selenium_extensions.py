@@ -51,6 +51,7 @@ def _download_chrome_drivers():
     zfile = zipfile.ZipFile(os.path.join(temp_dir, remote_file['file_name']))
     zfile.extractall(temp_dir)
 
+
 def _download_temp_file(url, file_name):
     """Downloads file into temp directory.
 
@@ -72,7 +73,8 @@ def _download_edge_drivers():
     """Downloads Edge drivers for Selenium."""
     remote_file = driver_urls['edge_windows_10']
     temp_dir = _download_temp_file(remote_file['url'], remote_file['file_name'])
-    os.system('msiexec /i %s /qn' % os.path.join(temp_dir, remote_file['file_name']))
+    os.system('msiexec /i %s /qn' % os.path.join(temp_dir,
+                                                 remote_file['file_name']))
 
 
 def _download_safari_drivers():
